@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Contadora{% endblock %}
+{% block content %}
+    <h2 class="mb-4">Dashboard - Contadora</h2>
+    <h4>Bienvenido, {{ current_user.username }}!</h4>
+    <h5>Resumen Financiero</h5>
+    <p>Total Ingresos: {{ total_ingresos }}</p>
+    <p>Total Gastos: {{ total_gastos }}</p>
+    <p>Total Compras: {{ total_compras }}</p>
+    <p>Total Salarios: {{ total_salarios }}</p>
+    <p>Balance: {{ balance }}</p>
+    <h5>Ingresos</h5>
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Monto</th>
+                <th>Fecha</th>
+                <th>Orden ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ingreso in ingresos %}
+            <tr>
+                <td>{{ ingreso.id }}</td>
+                <td>{{ ingreso.monto }}</td>
+                <td>{{ ingreso.fecha }}</td>
+                <td>{{ ingreso.orden_id }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('crear_ingreso') }}" class="btn btn-primary mb-3">Registrar Ingreso</a>
+    <h5>Gastos</h5>
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Monto</th>
+                <th>Descripción</th>
+                <th>Orden ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for gasto in gastos %}
+            <tr>
+                <td>{{ gasto.id }}</td>
+                <td>{{ gasto.monto }}</td>
+                <td>{{ gasto.descripcion }}</td>
+                <td>{{ gasto.orden_id }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('crear_gasto') }}" class="btn btn-primary mb-3">Registrar Gasto</a>
+    <h5>Compras</h5>
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Monto</th>
+                <th>Fecha</th>
+                <th>Proveedor</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for compra in compras %}
+            <tr>
+                <td>{{ compra.id }}</td>
+                <td>{{ compra.monto }}</td>
+                <td>{{ compra.fecha }}</td>
+                <td>{{ compra.proveedor.nombre if compra.proveedor else 'Desconocido' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('crear_compra') }}" class="btn btn-primary mb-3">Registrar Compra</a>
+    <h5>Salarios</h5>
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Monto</th>
+                <th>Fecha</th>
+                <th>Empleado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for salario in salarios %}
+            <tr>
+                <td>{{ salario.id }}</td>
+                <td>{{ salario.monto }}</td>
+                <td>{{ salario.fecha }}</td>
+                <td>{{ salario.user.username if salario.user else 'Desconocido' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('crear_salario') }}" class="btn btn-primary mb-3">Registrar Salario</a>
+    <a href="{{ url_for('logout') }}" class="btn btn-danger">Cerrar Sesión</a>
+{% endblock %}

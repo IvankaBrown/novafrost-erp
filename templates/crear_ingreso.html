@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Registrar Ingreso{% endblock %}
+{% block content %}
+    <div class="container mt-5" style="max-width: 500px;">
+        <h2 class="mb-4">Registrar Nuevo Ingreso</h2>
+        <form method="POST" action="{{ url_for('crear_ingreso') }}">
+            <div class="form-group">
+                <label for="orden_id">Orden</label>
+                <select class="form-control" id="orden_id" name="orden_id" required>
+                    {% for orden in ordenes %}
+                    <option value="{{ orden.id }}">Orden #{{ orden.id }} - {{ orden.cliente.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="monto">Monto</label>
+                <input type="number" class="form-control" id="monto" name="monto" step="0.01" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Registrar Ingreso</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-2">Volver</a>
+        </form>
+    </div>
+{% endblock %}

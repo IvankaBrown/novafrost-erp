@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Crear Compra{% endblock %}
+{% block content %}
+    <div class="container mt-5" style="max-width: 500px;">
+        <h2 class="mb-4">Registrar Nueva Compra</h2>
+        <form method="POST" action="{{ url_for('crear_compra') }}">
+            <div class="form-group">
+                <label for="proveedor_id">Proveedor</label>
+                <select class="form-control" id="proveedor_id" name="proveedor_id" required>
+                    {% for proveedor in proveedores %}
+                    <option value="{{ proveedor.id }}">{{ proveedor.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="fecha">Fecha</label>
+                <input type="date" class="form-control" id="fecha" name="fecha" required>
+            </div>
+            <div class="form-group">
+                <label for="monto">Monto</label>
+                <input type="number" step="0.01" class="form-control" id="monto" name="monto" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Registrar Compra</button>
+            <a href="{{ url_for('dashboard_contadora') }}" class="btn btn-secondary mt-2">Volver</a>
+        </form>
+    </div>
+{% endblock %}

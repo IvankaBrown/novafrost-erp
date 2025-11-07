@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Técnico{% endblock %}
+{% block content %}
+    <h2 class="mb-4">Dashboard - Técnico</h2>
+    <h4>Bienvenido, {{ current_user.username }}!</h4>
+    <h5>Mis Órdenes Asignadas</h5>
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Dirección</th>  # Nuevo campo
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Tipo de Aparato</th>
+                <th>Falla</th>
+                <th>Resolución</th>
+                <th>Acción</th>
+                <th>Pasajes</th>  # Nuevo
+            </tr>
+        </thead>
+        <tbody>
+            {% for orden in ordenes %}
+                <tr>
+                    <td>{{ orden.id }}</td>
+                    <td>{{ orden.cliente.nombre if orden.cliente else 'Desconocido' }}</td>
+                    <td>{{ orden.cliente.direccion if orden.cliente else 'Desconocido' }}</td>  # Nuevo: muestra dirección
+                    <td>{{ orden.fecha }}</td>
+                    <td>{{ orden.estado }}</td>
+                    <td>{{ orden.tipo_aparato }}</td>
+                    <td>{{ orden.falla if orden.falla else 'Pendiente' }}</td>
+                    <td>{{ orden.resolucion if orden.resolucion else 'Pendiente' }}</td>
+                    <td><a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}" class="btn btn-primary btn-sm">Actualizar</a></td>
+                    <td><a href="{{ url_for('registrar_pasajes', orden_id=orden.id) }}" class="btn btn-secondary btn-sm">Pasajes</a></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('logout') }}" class="btn btn-danger">Cerrar Sesión</a>
+{% endblock %}
