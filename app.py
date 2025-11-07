@@ -7,7 +7,7 @@ import os
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///novafrost_erp.db'
-app.config['SECRET_KEY'] = 'tu_secreto_aqui'  # Cambia esto por una clave segura
+app.config['SECRET_KEY'] = 'tu_secreto_aqui_cambia_esto_por_algo_muy_largo_y_secreto_123456789'  # ¡CÁMBIALO!
 
 db.init_app(app)  # Inicializa db con la app
 
@@ -44,6 +44,15 @@ with app.app_context():
         nueva_contadora = User(username='contadora', password=generate_password_hash('pass123'), role='contadora')
         db.session.add(nueva_contadora)
         db.session.commit()
+
+# ==================== RUTA RAÍZ (ESTO SOLUCIONA EL PROBLEMA EN RENDER) ====================
+@app.route('/')
+def index():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    else:
+        return redirect(url_for('login'))
+# =======================================================================================
 
 # Rutas
 @app.route('/login', methods=['GET', 'POST'])
@@ -322,5 +331,8 @@ def validar_pasaje(pasaje_id):
         db.session.commit()
     return redirect(url_for('dashboard'))
 
+# ==================== ARRANQUE CORRECTO PARA RENDER ====================
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
+# =====================================================================
