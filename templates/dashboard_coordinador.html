@@ -1,3 +1,83 @@
+<div class="container mt-4">
+    <h1 class="mb-4">Dashboard Coordinador</h1>
+
+    <!-- TARJETAS DE ESTADÍSTICAS -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5>Total Órdenes</h5>
+                    <h2>{{ ordenes|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5>Completadas</h5>
+                    <h2>{{ ordenes|selectattr("estado", "equalto", "completado")|list|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5>Pendientes</h5>
+                    <h2>{{ ordenes|selectattr("estado", "equalto", "pendiente")|list|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5>Urgentes</h5>
+                    <h2>{{ ordenes|selectattr("estado", "equalto", "urgente")|list|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <a href="{{ url_for('crear_orden') }}" class="btn btn-success mb-3">+ Nueva Orden</a>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Cliente</th>
+                    <th>Técnico</th>
+                    <th>Estado</th>
+                    <th>Falla</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for orden in ordenes %}
+                <tr>
+                    <td>#{{ orden.id }}</td>
+                    <td>{{ orden.cliente.nombre }}</td>
+                    <td>{{ orden.tecnico.username if orden.tecnico else 'Sin asignar' }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if orden.estado == 'completado' %}bg-success
+                            {% elif orden.estado == 'pendiente' %}bg-warning
+                            {% elif orden.estado == 'urgente' %}bg-danger
+                            {% else %}bg-secondary{% endif %}">
+                            {{ orden.estado|title }}
+                        </span>
+                    </td>
+                    <td>{{ orden.falla|default('Sin descripción') }}</td>
+                    <td>
+                        <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}" class="btn btn-sm btn-primary">Editar</a>
+                        <a href="https://wa.me/?text=*Nueva Orden #{{ orden.id }}*%0A*Cliente:* {{ orden.cliente.nombre }}%0A*Dirección:* {{ orden.cliente.direccion }}%0A*Falla:* {{ orden.falla }}" 
+                           target="_blank" class="btn btn-sm btn-success">WhatsApp</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% extends "base.html" %}
 {% block title %}Dashboard - Coordinador{% endblock %}
 {% block content %}
