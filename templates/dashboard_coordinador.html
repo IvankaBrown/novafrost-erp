@@ -1,231 +1,254 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Coordinador{% endblock %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        .badge { font-size: 0.9em; }
+        .card h2 { font-size: 2.5rem; margin: 0; }
+        .table td { vertical-align: middle; }
+        #map { height: 400px; }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-primary shadow-sm">
+    <div class="container-fluid">
+        <span class="navbar-brand mb-0 h1">
+            <i class="fas fa-snowflake"></i> NovaFrost ERP
+        </span>
+        <div>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm me-2">
+                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+            </a>
+            <a href="{{ url_for('listar_clientes') }}" class="btn btn-outline-light btn-sm">
+                <i class="fas fa-users"></i> Clientes
+            </a>
+        </div>
+    </div>
+</nav>
+
 <div class="container mt-4">
-    <h1 class="mb-4">Dashboard Coordinador</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Dashboard Coordinador</h1>
+        <span class="text-muted">Lima, Perú</span>
+    </div>
 
     <!-- TARJETAS DE ESTADÍSTICAS -->
     <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card text-white bg-primary">
-                <div class="card-body">
-                    <h5>Total Órdenes</h5>
-                    <h2>{{ ordenes|length }}</h2>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-primary h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <h5 class="card-title"><i class="fas fa-clipboard-list"></i> Total Órdenes</h5>
+                    <h2 class="mb-0">{{ ordenes|length }}</h2>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-success">
-                <div class="card-body">
-                    <h5>Completadas</h5>
-                    <h2>{{ ordenes|selectattr("estado", "equalto", "completado")|list|length }}</h2>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-success h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <h5 class="card-title"><i class="fas fa-check-circle"></i> Completadas</h5>
+                    <h2 class="mb-0">{{ ordenes|selectattr("estado", "equalto", "completado")|list|length }}</h2>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-warning">
-                <div class="card-body">
-                    <h5>Pendientes</h5>
-                    <h2>{{ ordenes|selectattr("estado", "equalto", "pendiente")|list|length }}</h2>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-warning h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <h5 class="card-title"><i class="fas fa-clock"></i> Pendientes</h5>
+                    <h2 class="mb-0">{{ ordenes|selectattr("estado", "equalto", "pendiente")|list|length }}</h2>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-danger">
-                <div class="card-body">
-                    <h5>Urgentes</h5>
-                    <h2>{{ ordenes|selectattr("estado", "equalto", "urgente")|list|length }}</h2>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-danger h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <h5 class="card-title"><i class="fas fa-exclamation-triangle"></i> Urgentes</h5>
+                    <h2 class="mb-0">{{ ordenes|selectattr("estado", "equalto", "urgente")|list|length }}</h2>
                 </div>
             </div>
         </div>
     </div>
 
-    <a href="{{ url_for('crear_orden') }}" class="btn btn-success mb-3">+ Nueva Orden</a>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <a href="{{ url_for('crear_orden') }}" class="btn btn-success btn-lg me-2">
+                <i class="fas fa-plus"></i> Nueva Orden
+            </a>
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#darAnticipoModal">
+                <i class="fas fa-money-bill"></i> Dar Anticipo
+            </button>
+        </div>
+        <form method="GET" class="d-inline-block">
+            <select name="estado" class="form-select w-auto d-inline-block me-2">
+                <option value="">Todos</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="completado">Completado</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+        </form>
+    </div>
 
-    <div class="table-responsive">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Cliente</th>
-                    <th>Técnico</th>
-                    <th>Estado</th>
-                    <th>Falla</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for orden in ordenes %}
-                <tr>
-                    <td>#{{ orden.id }}</td>
-                    <td>{{ orden.cliente.nombre }}</td>
-                    <td>{{ orden.tecnico.username if orden.tecnico else 'Sin asignar' }}</td>
-                    <td>
-                        <span class="badge 
-                            {% if orden.estado == 'completado' %}bg-success
-                            {% elif orden.estado == 'pendiente' %}bg-warning
-                            {% elif orden.estado == 'urgente' %}bg-danger
-                            {% else %}bg-secondary{% endif %}">
-                            {{ orden.estado|title }}
-                        </span>
-                    </td>
-                    <td>{{ orden.falla|default('Sin descripción') }}</td>
-                    <td>
-                        <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}" class="btn btn-sm btn-primary">Editar</a>
-                        <a href="https://wa.me/?text=*Nueva Orden #{{ orden.id }}*%0A*Cliente:* {{ orden.cliente.nombre }}%0A*Dirección:* {{ orden.cliente.direccion }}%0A*Falla:* {{ orden.falla }}" 
-                           target="_blank" class="btn btn-sm btn-success">WhatsApp</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- TABLA DE ÓRDENES -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Órdenes Recientes</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Técnico</th>
+                            <th>Estado</th>
+                            <th>Falla</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for orden in ordenes %}
+                        <tr>
+                            <td><strong>#{{ orden.id }}</strong></td>
+                            <td>
+                                <div>{{ orden.cliente.nombre }}</div>
+                                <small class="text-muted">{{ orden.cliente.telefono }}</small>
+                            </td>
+                            <td>{{ orden.tecnico.username if orden.tecnico else '<em>Sin asignar</em>'|safe }}</td>
+                            <td>
+                                <span class="badge rounded-pill 
+                                    {% if orden.estado == 'completado' %}bg-success
+                                    {% elif orden.estado == 'pendiente' %}bg-warning text-dark
+                                    {% elif orden.estado == 'urgente' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ orden.estado|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 200px;" title="{{ orden.falla }}">
+                                    {{ orden.falla|default('Sin descripción') }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}" 
+                                       class="btn btn-sm btn-outline-primary" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="https://wa.me/?text=*NUEVA ORDEN #{{ orden.id }}*%0A%F0%9F%94%A7%20*Cliente:*%20{{ orden.cliente.nombre }}%0A%F0%9F%93%8D%20*Dirección:*%20{{ orden.cliente.direccion|urlencode }}%0A%F0%9F%94%A7%20*Falla:*%20{{ orden.falla|urlencode }}%0A%F0%9F%95%90%20*Fecha:*%20{{ orden.fecha.strftime('%d/%m/%Y') }}" 
+                                       target="_blank" class="btn btn-sm btn-success" title="Enviar por WhatsApp">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ANTICIPOS DADOS -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="fas fa-money-check-alt"></i> Anticipos Dados</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Técnico</th>
+                            <th>Monto S/.</th>
+                            <th>Validado</th>
+                            <th>Por Validar</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for anticipo in anticipos %}
+                        <tr>
+                            <td>{{ anticipo.fecha.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ anticipo.tecnico.username }}</td>
+                            <td>S/. {{ "%.2f"|format(anticipo.monto) }}</td>
+                            <td>S/. {{ "%.2f"|format(anticipo.validado) }}</td>
+                            <td>S/. {{ "%.2f"|format(anticipo.por_validar) }}</td>
+                            <td><a href="{{ url_for('ver_pasajes', anticipo_id=anticipo.id) }}" class="btn btn-primary btn-sm">Validar</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAPA EN VIVO -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="fas fa-map-marked-alt"></i> Técnicos en Tiempo Real</h5>
+        </div>
+        <div class="card-body p-0">
+            <div id="map"></div>
+        </div>
     </div>
 </div>
-{% extends "base.html" %}
-{% block title %}Dashboard - Coordinador{% endblock %}
-{% block content %}
-    <h1>Dashboard - Coordinador</h1>
-    <p>Bienvenido, {{ current_user.username }}!</p>
-    <a href="{{ url_for('crear_orden') }}" class="btn btn-primary">Crear Nueva Orden</a>
-    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#darAnticipoModal">
-        Dar Anticipo al Técnico
-    </button>
 
-    <form method="GET" class="mb-3 d-inline-block">
-        <label for="estado" class="form-label">Filtrar por Estado:</label>
-        <select name="estado" id="estado" class="form-select w-auto d-inline-block me-2">
-            <option value="">Todos</option>
-            <option value="Pendiente">Pendiente</option>
-            <option value="Completado">Completado</option>
-        </select>
-        <button type="submit" class="btn btn-primary">Filtrar</button>
-    </form>
-
-    <table class="table table-striped mt-4">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Cliente</th>
-                <th>Fecha</th>
-                <th>Estado</th>
-                <th>Tipo de Aparato</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for orden in ordenes %}
-                <tr>
-                    <td>{{ orden.id }}</td>
-                    <td>{{ orden.cliente.nombre if orden.cliente else 'Desconocido' }}</td>
-                    <td>{{ orden.fecha.strftime('%Y-%m-%d') }}</td>
-                    <td>{{ orden.estado }}</td>
-                    <td>{{ orden.tipo_aparato }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <h5>Anticipos Dados</h5>
-    <table class="table table-striped table-hover">
-        <thead>
-            <tr>
-                <th>Fecha</th>
-                <th>Técnico</th>
-                <th>Monto S/.</th>
-                <th>Validado</th>
-                <th>Por Validar</th>
-                <th>Acción</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for anticipo in anticipos %}
-                <tr>
-                    <td>{{ anticipo.fecha.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ anticipo.tecnico.username }}</td>
-                    <td>S/. {{ "%.2f"|format(anticipo.monto) }}</td>
-                    <td>S/. {{ "%.2f"|format(anticipo.validado) }}</td>
-                    <td>S/. {{ "%.2f"|format(anticipo.por_validar) }}</td>
-                    <td><a href="{{ url_for('ver_pasajes', anticipo_id=anticipo.id) }}" class="btn btn-primary btn-sm">Validar</a></td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <!-- Modal: Dar Anticipo -->
-    <div class="modal fade" id="darAnticipoModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Dar Anticipo</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form method="POST" action="{{ url_for('dar_anticipo') }}">
-                        <div class="mb-3">
-                            <label class="form-label">Técnico</label>
-                            <select class="form-select" name="tecnico_id" required>
-                                {% for user in tecnicos %}
-                                    <option value="{{ user.id }}">{{ user.username }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Monto S/.</label>
-                            <input type="number" class="form-control" name="monto" step="0.01" required>
-                        </div>
-                        <button type="submit" class="btn btn-success">Dar Anticipo</button>
-                    </form>
-                </div>
+<!-- MODALES -->
+<div class="modal fade" id="darAnticipoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dar Anticipo al Técnico</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('dar_anticipo') }}">
+                    <div class="mb-3">
+                        <label class="form-label">Técnico</label>
+                        <select class="form-select" name="tecnico_id" required>
+                            {% for user in tecnicos %}
+                                <option value="{{ user.id }}">{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Monto S/.</label>
+                        <input type="number" class="form-control" name="monto" step="0.01" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">Dar Anticipo</button>
+                </form>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Modal: Validar Pasajes -->
-    {% for anticipo in anticipos %}
-        <div class="modal fade" id="validarModal{{ anticipo.id }}" tabindex="-1">
-            <div class="modal-dialog modal-xl">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Validar Pasajes - {{ anticipo.tecnico.username }}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Orden</th>
-                                    <th>Origen → Destino</th>
-                                    <th>Monto</th>
-                                    <th>Estado</th>
-                                    <th>Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for pasaje in anticipo.pasajes %}
-                                    <tr>
-                                        <td>#{{ pasaje.orden_id }}</td>
-                                        <td>{{ pasaje.origen_destino }}</td>
-                                        <td>S/. {{ "%.2f"|format(pasaje.monto) }}</td>
-                                        <td>
-                                            {% if pasaje.validado %}
-                                                <span class="badge bg-success">Validado</span>
-                                            {% else %}
-                                                <span class="badge bg-warning">Pendiente</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if not pasaje.validado %}
-                                                <form method="POST" action="{{ url_for('validar_pasaje', pasaje_id=pasaje.id) }}" class="d-inline">
-                                                    <button type="submit" class="btn btn-success btn-sm">Validar</button>
-                                                </form>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    {% endfor %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const map = L.map('map').setView([-12.0464, -77.0428], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    <a href="{{ url_for('logout') }}" class="btn btn-danger">Cerrar Sesión</a>
-    <a href="{{ url_for('listar_clientes') }}" class="btn btn-primary">Gestión Clientes</a>
+    // Ejemplo de técnicos (puedes actualizar con API)
+    const tecnicos = [
+        { name: "Técnico1", lat: -12.1191, lng: -77.0345, status: "En ruta" },
+        { name: "Técnico2", lat: -12.0975, lng: -77.0292, status: "Disponible" }
+    ];
+
+    tecnicos.forEach(t => {
+        L.marker([t.lat, t.lng]).addTo(map)
+            .bindPopup(`<b>${t.name}</b><br>${t.status}`);
+    });
+</script>
+</body>
+</html>
 {% endblock %}
