@@ -1,40 +1,135 @@
 {% extends "base.html" %}
 {% block title %}Dashboard - Técnico{% endblock %}
+
 {% block content %}
-    <h2 class="mb-4">Dashboard - Técnico</h2>
-    <h4>Bienvenido, {{ current_user.username }}!</h4>
-    <h5>Mis Órdenes Asignadas</h5>
-    <table class="table table-striped table-hover">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Cliente</th>
-                <th>Dirección</th>  # Nuevo campo
-                <th>Fecha</th>
-                <th>Estado</th>
-                <th>Tipo de Aparato</th>
-                <th>Falla</th>
-                <th>Resolución</th>
-                <th>Acción</th>
-                <th>Pasajes</th>  # Nuevo
-            </tr>
-        </thead>
-        <tbody>
-            {% for orden in ordenes %}
-                <tr>
-                    <td>{{ orden.id }}</td>
-                    <td>{{ orden.cliente.nombre if orden.cliente else 'Desconocido' }}</td>
-                    <td>{{ orden.cliente.direccion if orden.cliente else 'Desconocido' }}</td>  # Nuevo: muestra dirección
-                    <td>{{ orden.fecha }}</td>
-                    <td>{{ orden.estado }}</td>
-                    <td>{{ orden.tipo_aparato }}</td>
-                    <td>{{ orden.falla if orden.falla else 'Pendiente' }}</td>
-                    <td>{{ orden.resolucion if orden.resolucion else 'Pendiente' }}</td>
-                    <td><a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}" class="btn btn-primary btn-sm">Actualizar</a></td>
-                    <td><a href="{{ url_for('registrar_pasajes', orden_id=orden.id) }}" class="btn btn-secondary btn-sm">Pasajes</a></td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <a href="{{ url_for('logout') }}" class="btn btn-danger">Cerrar Sesión</a>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Dashboard - Técnico</h2>
+            <h4 class="text-primary">Bienvenido, {{ current_user.username }}!</h4>
+        </div>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">
+            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+        </a>
+    </div>
+
+    <!-- BOTÓN GPS GRANDE Y PRO (lo más visible posible) -->
+    <div class="text-center mb-5 p-4 bg-light rounded shadow-sm">
+        <h4 class="text-success mb-3">
+            <i class="fas fa-map-marker-alt"></i> Enviar mi ubicación actual
+        </h4>
+        <button onclick="enviarMiUbicacion()" id="btnGps" class="btn btn-success btn-lg px-5 py-3">
+            <i class="fas fa-location-arrow"></i> 
+            ENVIAR GPS AL COORDINADOR
+        </button>
+        <p class="text-muted mt-3 mb-0">
+            El coordinador verá exactamente dónde estás en tiempo real
+        </p>
+    </div>
+
+    <!-- Tabla de órdenes -->
+    <h5 class="mb-3">
+        <i class="fas fa-tools"></i> Mis Órdenes Asignadas
+    </h5>
+    <div class="card shadow">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Dirección</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Tipo</th>
+                            <th>Falla</th>
+                            <th>Resolución</th>
+                            <th>Acción</th>
+                            <th>Pasajes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for orden in ordenes %}
+                        <tr>
+                            <td><strong>#{{ orden.id }}</strong></td>
+                            <td>{{ orden.cliente.nombre|default('Sin cliente') }}</td>
+                            <td>{{ orden.cliente.direccion|default('-') }}</td>
+                            <td>{{ orden.fecha.strftime('%d/%m %H:%M') }}</td>
+                            <td>
+                                <span class="badge bg-{% if orden.estado == 'completado' %}success{% else %}warning{% endif %}">
+                                    {{ orden.estado|title }}
+                                </span>
+                            </td>
+                            <td>{{ orden.tipo_aparato|default('Refrigerador') }}</td>
+                            <td>{{ orden.falla|default('Pendiente') }}</td>
+                            <td>{{ orden.resolucion|default('Pendiente') }}</td>
+                            <td>
+                                <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}" 
+                                   class="btn btn-primary btn-sm">Actualizar</a>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('registrar_pasajes', orden_id=orden.id) }}" 
+                                   class="btn btn-secondary btn-sm">Pasajes</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">
+                                No tienes órdenes asignadas hoy
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT GPS MEJORADO -->
+<script>
+function enviarMiUbicacion() {
+    const btn = document.getElementById('btnGps');
+    const textoOriginal = btn.innerHTML;
+
+    if (!navigator.geolocation) {
+        alert("Tu celular no soporta GPS");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando ubicación...';
+
+    navigator.geolocation.getCurrentPosition(
+        position => {
+            fetch('/enviar_gps', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert("¡UBICACIÓN ENVIADA! El coordinador ya te ve en el mapa");
+                }
+            })
+            .catch(() => alert("Error de conexión"))
+            .finally(() => {
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+            });
+        },
+        error => {
+            alert("Error GPS: Activa la ubicación en tu celular");
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
+        },
+        { timeout: 10000 }
+    );
+}
+</script>
 {% endblock %}

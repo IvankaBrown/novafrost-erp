@@ -330,6 +330,26 @@ def validar_pasaje(pasaje_id):
         pasaje.validado = True
         db.session.commit()
     return redirect(url_for('dashboard'))
+# Guarda ubicación del técnico en tiempo real
+tecnicos_gps = {}  # {user_id: {"lat": ..., "lng": ..., "timestamp": ...}}
+
+@app.route('/enviar_gps', methods=['POST'])
+@login_required
+def enviar_gps():
+    if current_user.role.lower() != 'tecnico':
+        return jsonify({"error": "Solo técnicos"}), 403
+    
+    data = request.get_json()
+    tecnicos_gps[current_user.id] = {
+        "lat": data['lat'],
+        "lng": data['lng'],
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    return jsonify({"success": True})
+
+@app.route('/get_gps_tecnicos')
+def get_gps_tecnicos():
+    return jsonify(tecnicos_gps)
 
 # ==================== ARRANQUE CORRECTO PARA RENDER ====================
 if __name__ == '__main__':
