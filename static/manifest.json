@@ -2,9 +2,11 @@
   "name": "NovaFrost ERP",
   "short_name": "NovaFrost",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0066ff",
   "theme_color": "#0066ff",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/static/logo192.png",
@@ -15,6 +17,12 @@
       "src": "/static/logo512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/static/logo512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
     }
   ]
 }
