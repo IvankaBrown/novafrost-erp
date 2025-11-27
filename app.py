@@ -5,11 +5,10 @@ from db import db
 from models import User, Orden, Cliente, Anticipo, Pasaje
 from datetime import datetime
 import os
-import requests
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///novafrost_erp.db'
-app.config['SECRET_KEY'] = 'cambia_este_secreto_por_algo_muy_largo_y_seguro_2025'
+app.config['SECRET_KEY'] = 'nova_frost_2025_super_secreto_ultra_seguro_1234567890!@#'  # Cambiado por seguridad
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
@@ -35,12 +34,12 @@ with app.app_context():
             role='admin',
             activo=True
         )
-        admin.set_password('admin123')  # ¡Cámbiala después!
+        admin.set_password('admin123')
         db.session.add(admin)
         db.session.commit()
-        print("Admin creado → admin@novafrost.com / admin123")
+        print("Admin creado: admin@novafrost.com / admin123")
 
-    # Usuarios de prueba (con nombres reales)
+    # Usuarios de prueba
     usuarios_prueba = [
         ('coordinador@novafrost.com', 'Carlos', 'Ramírez', 'coordinador', 'pass123'),
         ('juan.perez@novafrost.com', 'Juan', 'Pérez', 'tecnico', 'pass123'),
@@ -54,7 +53,7 @@ with app.app_context():
             db.session.add(u)
     db.session.commit()
 
-# ====================== RUTAS PRINCIPALES ======================
+# ====================== RUTAS ======================
 @app.route('/')
 def index():
     return redirect(url_for('login') if not current_user.is_authenticated else url_for('dashboard'))
@@ -64,19 +63,20 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     if request.method == 'POST':
-        user = User.query.filter_by(email=request.form['email']).first()
+        email = request.form['email'].strip().lower()
+        user = User.query.filter_by(email=email).first()
         if user and user.check_password(request.form['password']) and user.activo:
-            login_user(user)
-            flash(f'¡Bienvenido, {user.nombre} {user.apellido}!', 'success')
+            login_user(user, remember=True)
+            flash(f'¡Bienvenido, {user.nombre_completo()}!', 'success')
             return redirect(url_for('dashboard'))
-        flash('Email o contraseña incorrectos', 'danger')
+        flash('Email o contraseña incorrectos, o usuario inactivo', 'danger')
     return render_template('login.html')
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    flash('Sesión cerrada', 'info')
+    flash('Has cerrado sesión correctamente', 'info')
     return redirect(url_for('login'))
 
 @app.route('/dashboard')
@@ -88,24 +88,26 @@ def dashboard():
 
     elif current_user.role == 'coordinador':
         estado = request.args.get('estado')
-        ordenes = Orden.query.filter_by(estado=estado).all() if estado else Orden.query.all()
-        anticipos = Anticipo.query.all()
-        tecnicos = User.query.filter_by(role='tecnico').all()
+        query = Orden.query
+        if estado:
+            query = query.filter_by(estado=estado)
+        ordenes = query.all()
 
-        # Preparar anticipos con datos calculados
+        anticipos = Anticipo.query.all()
         anticipos_data = []
         for a in anticipos:
             validado = db.session.query(db.func.sum(Pasaje.monto))\
                 .filter(Pasaje.anticipo_id == a.id, Pasaje.validado == True).scalar() or 0
             anticipos_data.append({
                 'id': a.id,
-                'fecha': a.fecha,
-                'tecnico': f"{a.user.nombre} {a.user.apellido}",
-                'monto': a.monto,
-                'validado': validado,
-                'por_validar': a.monto - validado
+                'fecha': a.fecha.strftime('%d/%m/%Y'),
+                'tecnico': a.user.nombre_completo() if a.user else 'Sin técnico',
+                'monto': float(a.monto),
+                'validado': float(validado),
+                'por_validar': float(a.monto - validado)
             })
 
+        tecnicos = User.query.filter_by(role='tecnico', activo=True).all()
         return render_template('dashboard_coordinador.html',
                                ordenes=ordenes,
                                anticipos=anticipos_data,
@@ -114,43 +116,45 @@ def dashboard():
     elif current_user.role == 'admin':
         return redirect(url_for('admin_tecnicos'))
 
+    elif current_user.role == 'contadora':
+        return render_template('dashboard_contadora.html')  # lo hacemos después
+
     return render_template('dashboard.html')
 
 # ====================== ADMIN TÉCNICOS ======================
 @app.route('/admin/tecnicos')
 @login_required
 def admin_tecnicos():
-    if current_user.role != 'admin':
-        flash('Acceso denegado', 'danger')
+    if not current_user.is_admin():  # usamos el método que ya tienes en models.py
+        flash('Acceso restringido a administradores', 'danger')
         return redirect(url_for('dashboard'))
-    tecnicos = User.query.filter_by(role='tecnico').all()
+    tecnicos = User.query.filter_by(role='tecnico').order_by(User.fecha_registro.desc()).all()
     return render_template('admin/tecnicos.html', tecnicos=tecnicos)
 
 @app.route('/admin/tecnicos/nuevo', methods=['GET', 'POST'])
 @login_required
 def nuevo_tecnico():
-    if current_user.role != 'admin':
-        flash('Acceso denegado', 'danger')
+    if not current_user.is_admin():
+        flash('Solo el administrador puede crear técnicos', 'danger')
         return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
-        email = request.form['email']
+        email = request.form['email'].strip().lower()
         if User.query.filter_by(email=email).first():
-            flash('Este email ya está registrado', 'danger')
+            flash('Este email ya está en uso', 'danger')
         else:
             nuevo = User(
                 email=email,
-                nombre=request.form['nombre'],
-                apellido=request.form['apellido'],
+                nombre=request.form['nombre'].strip(),
+                apellido=request.form['apellido'].strip(),
                 role='tecnico',
                 activo=True
             )
             nuevo.set_password(request.form['password'])
             db.session.add(nuevo)
             db.session.commit()
-            flash(f'Técnico {nuevo.nombre} {nuevo.apellido} creado con éxito', 'success')
+            flash(f'Técnico {nuevo.nombre_completo()} creado con éxito', 'success')
             return redirect(url_for('admin_tecnicos'))
-
     return render_template('admin/nuevo_tecnico.html')
 
 # ====================== GPS EN TIEMPO REAL ======================
@@ -160,11 +164,11 @@ tecnicos_gps = {}
 @login_required
 def enviar_gps():
     if current_user.role != 'tecnico':
-        return jsonify({"error": "Solo técnicos"}), 403
+        return jsonify({"error": "No autorizado"}), 403
     data = request.get_json()
     tecnicos_gps[current_user.id] = {
-        "lat": data['lat'],
-        "lng": data['lng'],
+        "lat": data.get('lat'),
+        "lng": data.get('lng'),
         "timestamp": datetime.utcnow().isoformat()
     }
     return jsonify({"success": True})
@@ -172,25 +176,6 @@ def enviar_gps():
 @app.route('/get_gps_tecnicos')
 def get_gps_tecnicos():
     return jsonify(tecnicos_gps)
-
-# ====================== OTRAS RUTAS (crear orden, dar anticipo, etc.) ======================
-# (Tienes estas rutas en tu código original, solo asegúrate de tenerlas)
-
-@app.route('/crear_orden', methods=['GET', 'POST'])
-@login_required
-def crear_orden():
-    if current_user.role != 'coordinador':
-        return redirect(url_for('dashboard'))
-    # ... tu código existente de crear_orden
-    pass  # ← Pega aquí tu ruta completa si ya la tienes
-
-@app.route('/dar_anticipo', methods=['POST'])
-@login_required
-def dar_anticipo():
-    if current_user.role != 'coordinador':
-        return redirect(url_for('dashboard'))
-    # ... tu código existente
-    pass
 
 # ====================== RUN ======================
 if __name__ == '__main__':
