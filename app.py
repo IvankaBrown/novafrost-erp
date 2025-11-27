@@ -8,7 +8,7 @@ import os
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///novafrost_erp.db'
-app.config['SECRET_KEY'] = 'nova_frost_2025_super_secreto_ultra_seguro_1234567890!@#'  # Cambiado por seguridad
+app.config['SECRET_KEY'] = 'nova_frost_2025_super_secreto_ultra_seguro_1234567890!@#'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
@@ -37,7 +37,6 @@ with app.app_context():
         admin.set_password('admin123')
         db.session.add(admin)
         db.session.commit()
-        print("Admin creado: admin@novafrost.com / admin123")
 
     # Usuarios de prueba
     usuarios_prueba = [
@@ -117,15 +116,15 @@ def dashboard():
         return redirect(url_for('admin_tecnicos'))
 
     elif current_user.role == 'contadora':
-        return render_template('dashboard_contadora.html')  # lo hacemos después
+        return render_template('dashboard_contadora.html')
 
     return render_template('dashboard.html')
 
-# ====================== ADMIN TÉCNICOS ======================
+# ====================== ADMIN TÉCNICOS (CORREGIDO) ======================
 @app.route('/admin/tecnicos')
 @login_required
 def admin_tecnicos():
-    if not current_user.is_admin():  # usamos el método que ya tienes en models.py
+    if current_user.role != 'admin':  # ← AQUÍ ESTABA EL ERROR
         flash('Acceso restringido a administradores', 'danger')
         return redirect(url_for('dashboard'))
     tecnicos = User.query.filter_by(role='tecnico').order_by(User.fecha_registro.desc()).all()
@@ -134,7 +133,7 @@ def admin_tecnicos():
 @app.route('/admin/tecnicos/nuevo', methods=['GET', 'POST'])
 @login_required
 def nuevo_tecnico():
-    if not current_user.is_admin():
+    if current_user.role != 'admin':  # ← AQUÍ TAMBIÉN
         flash('Solo el administrador puede crear técnicos', 'danger')
         return redirect(url_for('dashboard'))
 
