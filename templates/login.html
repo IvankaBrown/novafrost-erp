@@ -1,138 +1,108 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - ERP NovaFrost</title>
+{% extends "base.html" %}
+{% block title %}Login - NovaFrost ERP{% endblock %}
 
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+{% block extra_head %}
+<style>
+    body {
+        background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+    }
+    .login-card {
+        width: 100%;
+        max-width: 440px;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+        background: white;
+        animation: fadeIn 0.6s ease-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .logo img {
+        height: 90px;
+        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+    }
+    .hr-line {
+        height: 5px;
+        background: linear-gradient(90deg, #0066ff, #00d4ff);
+        border: none;
+        border-radius: 3px;
+        margin: 25px 0;
+    }
+    .credenciales {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 12px;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
 
-    <!-- PWA MANIFEST + ÍCONOS -->
-    <link rel="manifest" href="/static/manifest.json">
-    <link rel="apple-touch-icon" sizes="192x192" href="/static/logo192.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="/static/logo512.png">
-    <meta name="theme-color" content="#0066ff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+{% block content %}
+<div class="login-card">
+    <div class="text-center mb-4">
+        <div class="logo">
+            <img src="/static/logo.png" alt="NovaFrost ERP" class="img-fluid">
+        </div>
+        <h2 class="mt-3 text-primary fw-bold">ERP NovaFrost</h2>
+        <p class="text-muted">v2.0 • Sistema de Gestión Técnica</p>
+    </div>
 
-    <!-- Favicon -->
-    <link rel="icon" href="/static/logo192.png" sizes="192x192">
-    <link rel="icon" href="/static/logo512.png" sizes="512x512">
+    <hr class="hr-line">
 
-    <!-- SERVICE WORKER -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/static/sw.js')
-                    .then(reg => console.log('SW registrado →', reg.scope))
-                    .catch(err => console.error('Error SW:', err));
-            });
-        }
-    </script>
+    <!-- Mensajes flash (ya los maneja base.html, pero dejamos por si acaso) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category if category in ['success','info','warning'] else 'info' }} alert-dismissible fade show">
+                    <strong>
+                        {% if category == 'success' %}Éxito:{% endif %}
+                        {% if category == 'danger' or category == 'error' %}Error:{% endif %}
+                        {% if category == 'warning' %}Atención:{% endif %}
+                    </strong> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
-    <style>
-        body { 
-            background: linear-gradient(135deg, #0d6efd, #0dcaf0); 
-            height: 100vh; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-        }
-        .login-card { 
-            width: 100%; 
-max-width: 420px; 
-            padding: 40px; 
-            border-radius: 20px; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
-            background: white;
-        }
-        .logo img {
-            max-height: 90px;
-            display: block;
-            margin: 0 auto 20px;
-        }
-        .hr-line { 
-            height: 4px;
-            background: #0066ff;
-            border: none;
-            border-radius: 2px;
-            margin: 25px 0;
-        }
-        small { font-size: 0.85rem; }
-    </style>
-</head>
-<body>
-    <div class="login-card">
-        <div class="text-center">
-            <div class="logo">
-                <img src="/static/logo.png" alt="NovaFrost ERP">
-            </div>
-            <h2 class="mb-2 text-primary">ERP NovaFrost</h2>
-            <p class="text-muted">v2.0 • Lima, Perú</p>
+    <!-- FORMULARIO LOGIN -->
+    <form method="POST" action="{{ url_for('login') }}" novalidate>
+        <div class="mb-3">
+            <label class="form-label fw-bold text-dark">Email</label>
+            <input type="email" name="email" class="form-control form-control-lg" 
+                   placeholder="técnico@novafrost.com" required autofocus>
+        </div>
+        <div class="mb-4">
+            <label class="form-label fw-bold text-dark">Contraseña</label>
+            <input type="password" name="password" class="form-control form-control-lg" 
+                   placeholder="••••••••" required>
         </div>
 
-        <hr class="hr-line">
+        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
+            Iniciar Sesión
+        </button>
+    </form>
 
-        <!-- Mensajes flash -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show mt-3">
-                        {{ message }}
-                        <button type="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <!-- FORMULARIO DE LOGIN (AHORA CON NAME="EMAIL") -->
-        <form method="POST" action="{{ url_for('login') }}" novalidate>
-            <div class="mb-3">
-                <label class="form-label fw-bold">Email</label>
-                <input 
-                    type="email" 
-                    name="email" 
-                    class="form-control form-control-lg" 
-                    placeholder="admin@novafrost.com" 
-                    value="admin@novafrost.com"
-                    required 
-                    autofocus
-                >
-            </div>
-            <div class="mb-4">
-                <label class="form-label fw-bold">Contraseña</label>
-                <input 
-                    type="password" 
-                    name="password" 
-                    class="form-control form-control-lg" 
-                    placeholder="••••••••" 
-                    value="admin123"
-                    required
-                >
-            </div>
-            <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
-                Iniciar Sesión como Admin
-            </button>
-        </form>
-
-        <div class="text-center mt-4">
-            <small class="text-muted d-block">
-                Credenciales de prueba:
-            </small>
-            <small class="text-success fw-bold">
-                admin@novafrost.com • admin123
-            </small>
-            <br>
-            <small class="text-info">
-                coordinador@novafrost.com • pass123
-            </small>
+    <!-- CREDENCIALES DE PRUEBA -->
+    <div class="credenciales text-center mt-4 p-3">
+        <small class="text-muted d-block mb-2 fw-bold">Credenciales rápidas de prueba:</small>
+        <div class="row g-2 text-start">
+            <div class="col-12"><span class="text-success fw-bold">admin@novafrost.com</span> → admin123</div>
+            <div class="col-12"><span class="text-primary fw-bold">coordinador@novafrost.com</span> → pass123</div>
+            <div class="col-12"><span class="text-info fw-bold">juan.perez@novafrost.com</span> → pass123</div>
+            <div class="col-12"><span class="text-warning fw-bold">maria.gomez@novafrost.com</span> → pass123</div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <div class="text-center mt-4">
+        <small class="text-muted">© 2025 NovaFrost • Lima, Perú</small>
+    </div>
+</div>
+{% endblock %}
