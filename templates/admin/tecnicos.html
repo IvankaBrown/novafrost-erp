@@ -5,7 +5,7 @@
 <div class="container py-5">
 
     <!-- Título + Botón Nuevo Técnico -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-4 mb-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-4 mb-5 mb-5">
         <div>
             <h1 class="display-5 fw-bold text-primary mb-2">
                 Gestión de Técnicos
@@ -13,7 +13,6 @@
             <p class="text-muted fs-5">Administra todos los técnicos de NovaFrost</p>
         </div>
         <a href="{{ url_for('nuevo_tecnico') }}" class="btn btn-success btn-lg shadow-sm px-4">
-            <i class="bi bi-person-plus-fill me-2"></i>
             Nuevo Técnico
         </a>
     </div>
@@ -22,7 +21,6 @@
     <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
         <div class="card-header bg-primary text-white py-4">
             <h3 class="mb-0 text-center text-md-start">
-                <i class="bi bi-people-fill me-3"></i>
                 Listado de Técnicos Activos
             </h3>
         </div>
@@ -63,21 +61,20 @@
                                 <td>{{ t.fecha_registro.strftime('%d/%m/%Y') }}</td>
                                 <td>
                                     <span class="badge bg-{{ 'success' if t.activo else 'secondary' }} fs-6 px-3 py-2">
-                                        <i class="bi bi-{{ 'check-circle' if t.activo else 'x-circle' }} me-1"></i>
                                         {{ 'Activo' if t.activo else 'Inactivo' }}
                                     </span>
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group" role="group">
-                                        <button class="btn btn-outline-primary btn-sm" title="Ver perfil">
-                                            <i class="bi bi-eye"></i>
+                                        <button class="btn btn-outline-primary btn-sm" title="Ver perfil" disabled>
+                                            Ver
                                         </button>
                                         <button class="btn btn-outline-warning btn-sm" title="Editar" disabled>
-                                            <i class="bi bi-pencil-square"></i>
+                                            Editar
                                         </button>
                                         <button class="btn btn-outline-danger btn-sm" title="Desactivar" 
                                                 {% if not t.activo %}disabled{% endif %}>
-                                            <i class="bi bi-person-x"></i>
+                                            Desactivar
                                         </button>
                                     </div>
                                 </td>
@@ -89,11 +86,9 @@
             {% else %}
                 <!-- Sin técnicos -->
                 <div class="text-center py-5 my-5">
-                    <i class="bi bi-people fs-1 text-muted mb-4"></i>
                     <h3 class="text-muted">Aún no hay técnicos registrados</h3>
                     <p class="text-muted mb-4">Comienza creando el primer técnico del equipo</p>
                     <a href="{{ url_for('nuevo_tecnico') }}" class="btn btn-success btn-lg px-5">
-                        <i class="bi bi-person-plus-fill me-2"></i>
                         Crear Primer Técnico
                     </a>
                 </div>
@@ -101,9 +96,9 @@
         </div>
     </div>
 
-    <!-- Footer pequeño -->
-    <div class="text-center mt-5 text-muted">
-        <small>NovaFrost ERP • {{ "now" | strftime('%Y') }} • Todos los derechos reservados</small>
+    <!-- Footer corregido (sin strftime) -->
+    <div class="text-center mt-5">
+        <small class="text-muted">NovaFrost ERP • 2025 • Todos los derechos reservados</small>
     </div>
 </div>
 {% endblock %}
