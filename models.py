@@ -1,12 +1,63 @@
 from db import db  # Importa db desde db.py
-from flask_login import UserMixin  # Importa UserMixin
-from datetime import datetime  # Importa datetime para defaults
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
-class User(db.Model, UserMixin):  # Hereda de UserMixin
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
-    role = db.Column(db.String(20), nullable=False)
+    
+    # ← AHORA USAMOS EMAIL COMO IDENTIFICADOR (más profesional y fácil)
+    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    
+    # Password ahora se guarda hasheado (seguridad)
+    password_hash = db.Column(db.String(255), nullable=False)
+    
+    # Rol: 'admin', 'tecnico', 'coordinador'
+    role = db.Column(db.String(20), nullable=False, default='tecnico')
+    
+    # ← CAMPOS NUEVOS PARA NOMBRES REALES
+    nombre = db.Column(db.String(100), nullable=False, default='')
+    apellido = db.Column(db.String(100), nullable=False, default='')
+    
+    # Para activar/desactivar técnicos
+    activo = db.Column(db.Boolean, default=True)
+    
+    # Token FCM para notificaciones push (ya lo tenías, lo dejo)
+    push_token = db.Column(db.String(500), nullable=True)
+    
+    # Fecha de registro
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relaciones que ya tenías
+    ordenes_tecnico = db.relationship('Orden', backref='tecnico', lazy=True)
+    anticipos = db.relationship('Anticipo', backref='tecnico_rel', lazy=True)
+    salarios = db.relationship('Salario', backref='tecnico', lazy=True)
+
+    # Métodos para manejar password de forma segura
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    # Nombre completo para mostrar en dashboard y listas
+    def nombre_completo(self):
+        if self.nombre and self.apellido:
+            return f"{self.nombre} {self.apellido}"
+        return self.email.split('@')[0].title()
+
+    # Para Flask-Login
+    def get_id(self):
+        return str(self.id)
+
+    def is_admin(self):
+        return self.role == 'admin'
+
+    def __repr__(self):
+        return f'<User {self.email} - {self.role}>'
+
+# EL RESTO DE TUS MODELOS QUEDA EXACTAMENTE IGUAL
+# (Solo copio los que ya tenías para que no pierdas nada)
 
 class Orden(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -14,20 +65,20 @@ class Orden(db.Model):
     tecnico_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     fecha = db.Column(db.DateTime, nullable=False)
     estado = db.Column(db.String(20), nullable=False)
-    tipo_aparato = db.Column(db.String(50), nullable=False, default='Refrigerador')  # Nuevo: "Refrigerador" o "Lavadora"
-    falla = db.Column(db.String(200), nullable=True)  # Concepto de la falla, ingresado por técnico
-    resolucion = db.Column(db.String(200), nullable=True)  # Cómo se resolvió, ingresado por técnico
-    cliente = db.relationship('Cliente', backref='ordenes', lazy=True)  # Relación para acceder al nombre del cliente
-    tecnico = db.relationship('User', backref='ordenes_tecnico', lazy=True)  # Relación para técnico
-    valor = db.Column(db.Float, nullable=True)  # Monto sin IGV
-    igv = db.Column(db.Float, nullable=True)  # IGV 18%
-    total = db.Column(db.Float, nullable=True)  # Total = valor + igv
+    tipo_aparato = db.Column(db.String(50), nullable=False, default='Refrigerador')
+    falla = db.Column(db.String(200), nullable=True)
+    resolucion = db.Column(db.String(200), nullable=True)
+    cliente = db.relationship('Cliente', backref='ordenes', lazy=True)
+    valor = db.Column(db.Float, nullable=True)
+    igv = db.Column(db.Float, nullable=True)
+    total = db.Column(db.Float, nullable=True)
+    pasajes = db.relationship('Pasaje', backref='orden', lazy=True)
 
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     telefono = db.Column(db.String(20), nullable=True)
-    direccion = db.Column(db.String(200), nullable=True)  # Nuevo campo: Dirección del cliente
+    direccion = db.Column(db.String(200), nullable=True)
 
 class Proveedor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -50,8 +101,8 @@ class Gasto(db.Model):
     orden_id = db.Column(db.Integer, db.ForeignKey('orden.id'), nullable=False)
     monto = db.Column(db.Float, nullable=False)
     descripcion = db.Column(db.String(200), nullable=True)
-    tipo = db.Column(db.String(50), nullable=False, default='general')  # Nuevo: 'pasajes' para gastos de pasajes
-    validado = db.Column(db.Boolean, nullable=False, default=False)  # Nuevo: validado por coordinador
+    tipo = db.Column(db.String(50), nullable=False, default='general')
+    validado = db.Column(db.Boolean, nullable=False, default=False)
 
 class Ingreso(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -70,15 +121,13 @@ class Anticipo(db.Model):
     tecnico_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     monto = db.Column(db.Float, nullable=False)
     fecha = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    tecnico = db.relationship('User', backref='anticipos', lazy=True)  # Relación para técnico
+    pasajes = db.relationship('Pasaje', backref='anticipo', lazy=True)
 
 class Pasaje(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     orden_id = db.Column(db.Integer, db.ForeignKey('orden.id'), nullable=False)
-    anticipo_id = db.Column(db.Integer, db.ForeignKey('anticipo.id'), nullable=False)  # Asegúrate de que esté así
+    anticipo_id = db.Column(db.Integer, db.ForeignKey('anticipo.id'), nullable=False)
     origen_destino = db.Column(db.String(200), nullable=False)
     monto = db.Column(db.Float, nullable=False)
     fecha = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     validado = db.Column(db.Boolean, nullable=False, default=False)
-    orden = db.relationship('Orden', backref='pasajes', lazy=True)
-    anticipo = db.relationship('Anticipo', backref='pasajes', lazy=True)

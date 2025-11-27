@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Técnico{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-plus"></i> Crear Nuevo Técnico
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre</label>
+                            <input type="text" name="nombre" class="form-control form-control-lg" required autofocus>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Apellido</label>
+                            <input type="text" name="apellido" class="form-control form-control-lg" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Email (será su usuario)</label>
+                            <input type="email" name="email" class="form-control form-control-lg" 
+                                   placeholder="juan.perez@novafrost.com" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Contraseña</label>
+                            <input type="password" name="password" class="form-control form-control-lg" 
+                                   minlength="6" required>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check"></i> Crear Técnico
+                            </button>
+                            <a href="{{ url_for('admin_tecnicos') }}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-arrow-left"></i> Volver
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

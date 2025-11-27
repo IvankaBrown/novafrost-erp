@@ -2,104 +2,179 @@
 {% block title %}Dashboard - Técnico{% endblock %}
 
 {% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    .gps-card {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        margin-bottom: 2rem;
+    }
+    .gps-card h3 {
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+    }
+    #btnGps {
+        font-size: 1.4rem;
+        padding: 1rem 3rem;
+        border-radius: 50px;
+        font-weight: bold;
+        transition: all 0.3s;
+    }
+    #btnGps:hover {
+        transform: scale(1.05);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+    .badge-custom {
+        font-size: 0.9rem;
+        padding: 0.5em 0.8em;
+    }
+</style>
+
 <div class="container mt-4">
+
+    <!-- SALUDO PERSONALIZADO -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-1">Dashboard - Técnico</h2>
-            <h4 class="text-primary">Bienvenido, {{ current_user.username }}!</h4>
+            <h2 class="mb-1 text-primary">
+                <i class="fas fa-hard-hat"></i> Dashboard Técnico
+            </h2>
+            <h3 class="text-success">
+                ¡Hola, <strong>{{ current_user.nombre_completo() }}</strong>!
+            </h3>
+            <p class="text-muted mb-0">Listo para romperla hoy</p>
         </div>
-        <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">
-            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-        </a>
+        <div>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-lg">
+                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+            </a>
+        </div>
     </div>
 
-    <!-- BOTÓN GPS GRANDE Y PRO (lo más visible posible) -->
-    <div class="text-center mb-5 p-4 bg-light rounded shadow-sm">
-        <h4 class="text-success mb-3">
-            <i class="fas fa-map-marker-alt"></i> Enviar mi ubicación actual
-        </h4>
-        <button onclick="enviarMiUbicacion()" id="btnGps" class="btn btn-success btn-lg px-5 py-3">
-            <i class="fas fa-location-arrow"></i> 
-            ENVIAR GPS AL COORDINADOR
+    <!-- BOTÓN GPS ULTRA VISIBLE -->
+    <div class="gps-card">
+        <h3>
+            <i class="fas fa-map-marker-alt fa-beat fa-2x"></i><br>
+            Enviar mi ubicación al coordinador
+        </h3>
+        <button onclick="enviarMiUbicacion()" id="btnGps" class="btn btn-light btn-lg shadow-lg">
+            <i class="fas fa-location-arrow fa-2x"></i><br>
+            <strong>ENVIAR GPS AHORA</strong>
         </button>
-        <p class="text-muted mt-3 mb-0">
-            El coordinador verá exactamente dónde estás en tiempo real
+        <p class="mt-3 mb-0 opacity-90">
+            Tu ubicación aparecerá en tiempo real en el mapa del coordinador
         </p>
     </div>
 
-    <!-- Tabla de órdenes -->
-    <h5 class="mb-3">
-        <i class="fas fa-tools"></i> Mis Órdenes Asignadas
-    </h5>
-    <div class="card shadow">
+    <!-- MIS ÓRDENES -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">
+            <i class="fas fa-tools text-primary"></i> Mis Órdenes Asignadas
+        </h4>
+        <span class="badge bg-primary fs-6">{{ ordenes|length }} órdenes hoy</span>
+    </div>
+
+    <div class="card shadow-lg border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-striped table-hover mb-0">
-                    <thead class="table-primary">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-primary text-white">
                         <tr>
-                            <th>ID</th>
+                            <th>#ID</th>
                             <th>Cliente</th>
                             <th>Dirección</th>
                             <th>Fecha</th>
                             <th>Estado</th>
-                            <th>Tipo</th>
+                            <th>Aparato</th>
                             <th>Falla</th>
-                            <th>Resolución</th>
                             <th>Acción</th>
                             <th>Pasajes</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for orden in ordenes %}
-                        <tr>
-                            <td><strong>#{{ orden.id }}</strong></td>
-                            <td>{{ orden.cliente.nombre|default('Sin cliente') }}</td>
-                            <td>{{ orden.cliente.direccion|default('-') }}</td>
-                            <td>{{ orden.fecha.strftime('%d/%m %H:%M') }}</td>
-                            <td>
-                                <span class="badge bg-{% if orden.estado == 'completado' %}success{% else %}warning{% endif %}">
-                                    {{ orden.estado|title }}
-                                </span>
-                            </td>
-                            <td>{{ orden.tipo_aparato|default('Refrigerador') }}</td>
-                            <td>{{ orden.falla|default('Pendiente') }}</td>
-                            <td>{{ orden.resolucion|default('Pendiente') }}</td>
-                            <td>
-                                <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}" 
-                                   class="btn btn-primary btn-sm">Actualizar</a>
-                            </td>
-                            <td>
-                                <a href="{{ url_for('registrar_pasajes', orden_id=orden.id) }}" 
-                                   class="btn btn-secondary btn-sm">Pasajes</a>
-                            </td>
-                        </tr>
+                        {% if ordenes %}
+                            {% for orden in ordenes %}
+                            <tr class="{% if orden.estado == 'urgente' %}table-danger{% endif %}">
+                                <td><strong class="text-primary">#{{ orden.id }}</strong></td>
+                                <td>
+                                    <div class="fw-bold">{{ orden.cliente.nombre }}</div>
+                                    <small class="text-muted">{{ orden.cliente.telefono or 'Sin teléfono' }}</small>
+                                </td>
+                                <td>
+                                    <small>{{ orden.cliente.direccion|default('Sin dirección') }}</small>
+                                </td>
+                                <td>{{ orden.fecha.strftime('%d/%m') }}<br>
+                                    <small>{{ orden.fecha.strftime('%H:%M') }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge badge-custom 
+                                        {% if orden.estado == 'completado' %}bg-success
+                                        {% elif orden.estado == 'urgente' %}bg-danger
+                                        {% else %}bg-warning text-dark{% endif %}">
+                                        {{ orden.estado|title }}
+                                    </span>
+                                </td>
+                                <td>{{ orden.tipo_aparato|default('Refrigerador') }}</td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 180px;" title="{{ orden.falla|default('Sin descripción') }}">
+                                        {{ orden.falla|default('Sin descripción')|truncate(50) }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}" 
+                                       class="btn btn-primary btn-sm">
+                                        <i class="fas fa-edit"></i> Actualizar
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('registrar_pasajes', orden_id=orden.id) }}" 
+                                       class="btn btn-info btn-sm text-white">
+                                        <i class="fas fa-bus"></i> Pasajes
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
                         {% else %}
-                        <tr>
-                            <td colspan="10" class="text-center text-muted py-4">
-                                No tienes órdenes asignadas hoy
-                            </td>
-                        </tr>
-                        {% endfor %}
+                            <tr>
+                                <td colspan="9" class="text-center py-5 text-muted">
+                                    <i class="fas fa-check-circle fa-3x mb-3 text-success"></i><br>
+                                    <h5>¡Todo al día!</h5>
+                                    <p>No tienes órdenes pendientes por ahora</p>
+                                </td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
+    <!-- Indicador de conexión GPS -->
+    <div class="text-center mt-4">
+        <small class="text-muted">
+            <i class="fas fa-circle text-success"></i> Conexión activa • 
+            Última ubicación enviada: <span id="ultimoEnvio">Nunca</span>
+        </small>
+    </div>
 </div>
 
-<!-- SCRIPT GPS MEJORADO -->
+<!-- SCRIPT GPS MEJORADO CON FEEDBACK VISUAL -->
 <script>
 function enviarMiUbicacion() {
     const btn = document.getElementById('btnGps');
     const textoOriginal = btn.innerHTML;
 
     if (!navigator.geolocation) {
-        alert("Tu celular no soporta GPS");
+        alert("Tu navegador no soporta geolocalización");
         return;
     }
 
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando ubicación...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin fa-2x"></i><br><strong>Obteniendo ubicación...</strong>';
 
     navigator.geolocation.getCurrentPosition(
         position => {
@@ -114,21 +189,35 @@ function enviarMiUbicacion() {
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    alert("¡UBICACIÓN ENVIADA! El coordinador ya te ve en el mapa");
+                    btn.innerHTML = '<i class="fas fa-check-circle fa-2x"></i><br><strong>¡ENVIADO!</strong>';
+                    document.getElementById('ultimoEnvio').textContent = new Date().toLocaleTimeString();
+                    setTimeout(() => {
+                        btn.innerHTML = textoOriginal;
+                        btn.disabled = false;
+                    }, 3000);
                 }
             })
-            .catch(() => alert("Error de conexión"))
-            .finally(() => {
+            .catch(() => {
+                alert("Error de conexión");
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
             });
         },
         error => {
-            alert("Error GPS: Activa la ubicación en tu celular");
+            let msg = "Error desconocido";
+            if (error.code === 1) msg = "Permiso de ubicación denegado";
+            if (error.code === 2) msg = "GPS no disponible";
+            if (error.code === 3) msg = "Tiempo agotado";
+            
+            alert("Error GPS: " + msg + "\n\nActiva la ubicación y permite el acceso");
             btn.innerHTML = textoOriginal;
             btn.disabled = false;
         },
-        { timeout: 10000 }
+        { 
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0 
+        }
     );
 }
 </script>
