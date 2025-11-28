@@ -188,11 +188,48 @@ def debug_users():
 @login_required
 def crear_orden():
     if current_user.role != 'coordinador':
-        flash('Solo el coordinador puede crear órdenes', 'danger')
+        flash('Acceso restringido', 'danger')
         return redirect(url_for('dashboard'))
-    # Por ahora solo redirige al dashboard (luego lo hacemos completo)
-    flash('Función crear orden en desarrollo', 'info')
-    return redirect(url_for('dashboard'))
+
+    tecnicos = User.query.filter_by(role='tecnico', activo=True).all()
+
+    if request.method == 'POST':
+        try:
+            cliente_nombre = request.form['cliente_nombre'].strip()
+            falla = request.form['falla'].strip()
+            tecnico_id = request.form['tecnico_id']
+            tipo_aparato = request.form['tipo_aparato']
+            total = float(request.form['total'])
+            urgente = 'urgente' in request.form
+
+            # Crear o buscar cliente
+            cliente = Cliente.query.filter_by(nombre=cliente_nombre).first()
+            if not cliente:
+                cliente = Cliente(nombre=cliente_nombre)
+                db.session.add(cliente)
+                db.session.flush()
+
+            # Crear orden
+            orden = Orden(
+                cliente_id=cliente.id,
+                tecnico_id=tecnico_id,
+                falla=falla,
+                tipo_aparato=tipo_aparato,
+                total=total,
+                estado='urgente' if urgente else 'pendiente',
+                fecha=datetime.utcnow()
+            )
+            db.session.add(orden)
+            db.session.commit()
+
+            flash(f'Orden #{orden.id} creada con éxito y asignada', 'success')
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash('Error al crear la orden', 'danger')
+
+    return render_template('crear_orden.html', tecnicos=tecnicos)
 
 @app.route('/listar_clientes')
 @login_required

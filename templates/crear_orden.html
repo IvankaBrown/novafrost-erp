@@ -1,64 +1,108 @@
 {% extends "base.html" %}
-{% block title %}Crear Orden{% endblock %}
+{% block title %}Crear Orden - NovaFrost ERP{% endblock %}
+
 {% block content %}
-    <div class="container mt-5" style="max-width: 500px;">
-        <h2 class="mb-4">Crear Nueva Orden</h2>
-        <form method="POST" action="{{ url_for('crear_orden') }}">
-            <div class="form-group">
-                <label for="cliente_id">Cliente</label>
-                <select class="form-control" id="cliente_id" name="cliente_id" required>
-                    {% for cliente in clientes %}
-                    <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
-                    {% endfor %}
-                </select>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h2 class="mb-0 fw-bold">Nueva Orden de Servicio</h2>
+                    <p class="mb-0 opacity-90">Complete todos los datos del cliente y servicio</p>
+                </div>
+                
+                <div class="card-body p-5">
+                    <form method="POST" action="{{ url_for('crear_orden') }}">
+                        <div class="row g-4">
+                            <!-- CLIENTE -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-primary">Cliente</label>
+                                <input type="text" name="cliente_nombre" class="form-control form-control-lg" 
+                                       placeholder="Nombre del cliente o empresa" required>
+                                <small class="text-muted">Se creará automáticamente si no existe</small>
+                            </div>
+
+                            <!-- TÉCNICO -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-primary">Técnico Asignado</label>
+                                <select name="tecnico_id" class="form-select form-select-lg" required>
+                                    <option value="">Seleccionar técnico</option>
+                                    {% for t in tecnicos %}
+                                    <option value="{{ t.id }}">{{ t.nombre_completo() }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- TIPO DE APARATO -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-primary">Tipo de Aparato</label>
+                                <select name="tipo_aparato" class="form-select form-select-lg" required>
+                                    <option value="Refrigerador">Refrigerador</option>
+                                    <option value="Congelador">Congelador</option>
+                                    <option value="Vitrina">Vitrina Refrigerada</option>
+                                    <option value="Cava">Cava de Vinos</option>
+                                    <option value="Máquina de Hielo">Máquina de Hielo</option>
+                                    <option value="Otros">Otros</option>
+                                </select>
+                            </div>
+
+                            <!-- FALLA -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-primary">Falla Reportada</label>
+                                <textarea name="falla" class="form-control form-control-lg" rows="3" 
+                                          placeholder="Ej: No enfría, hace ruido, no prende..." required></textarea>
+                            </div>
+
+                            <!-- TOTAL + IGV AUTOMÁTICO -->
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-success">Total con IGV</label>
+                                <input type="number" step="0.01" name="total" id="total" class="form-control form-control-lg" 
+                                       placeholder="0.00" onchange="calcularIGV()" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-info">IGV (18%)</label>
+                                <input type="number" step="0.01" id="igv" class="form-control form-control-lg bg-light" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-warning">Valor sin IGV</label>
+                                <input type="number" step="0.01" id="valor" class="form-control form-control-lg bg-light" readonly>
+                            </div>
+
+                            <!-- URGENTE -->
+                            <div class="col-12">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" name="urgente" id="urgente">
+                                    <label class="form-check-label text-danger fw-bold" for="urgente">
+                                        URGENTE - Atender hoy mismo
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-5">
+
+                        <div class="d-grid d-md-flex justify-content-end gap-3">
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-lg">
+                                Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg px-5 fw-bold">
+                                Crear Orden y Notificar
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="fecha">Fecha</label>
-                <input type="date" class="form-control" id="fecha" name="fecha" required>
-            </div>
-            <div class="form-group">
-                <label for="estado">Estado</label>
-                <input type="text" class="form-control" id="estado" name="estado" value="Pendiente" required>
-            </div>
-            <div class="form-group">
-                <label for="tipo_aparato">Tipo de Aparato</label>
-                <select class="form-control" id="tipo_aparato" name="tipo_aparato" required>
-                    <option value="Refrigerador">Refrigerador</option>
-                    <option value="Lavadora">Lavadora</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="tecnico_id">Asignar Técnico</label>
-                <select class="form-control" id="tecnico_id" name="tecnico_id">
-                    <option value="">Ninguno</option>
-                    {% for user in tecnicos %}
-                    <option value="{{ user.id }}">{{ user.username }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="total">Total</label>
-                <input type="number" class="form-control" id="total" name="total" step="0.01" required onchange="calculateIGV()">
-            </div>
-            <div class="form-group">
-                <label for="igv">IGV (18%)</label>
-                <input type="number" class="form-control" id="igv" name="igv" step="0.01" readonly>
-            </div>
-            <div class="form-group">
-                <label for="valor">Valor (sin IGV)</label>
-                <input type="number" class="form-control" id="valor" name="valor" step="0.01" readonly>
-            </div>
-            <script>
-            function calculateIGV() {
-                var total = parseFloat(document.getElementById('total').value) || 0;
-                var igv = total * (0.18 / 1.18);
-                var valor = total - igv;
-                document.getElementById('igv').value = igv.toFixed(2);
-                document.getElementById('valor').value = valor.toFixed(2);
-            }
-            </script>
-            <button type="submit" class="btn btn-primary btn-block">Crear Orden</button>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-2">Volver</a>
-        </form>
+        </div>
     </div>
+</div>
+
+<script>
+function calcularIGV() {
+    const total = parseFloat(document.getElementById('total').value) || 0;
+    const igv = total * (0.18 / 1.18);
+    const valor = total - igv;
+    document.getElementById('igv').value = igv.toFixed(2);
+    document.getElementById('valor').value = valor.toFixed(2);
+}
+</script>
 {% endblock %}
