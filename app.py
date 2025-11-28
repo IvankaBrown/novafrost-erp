@@ -11,7 +11,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///novafrost_erp.db'
 app.config['SECRET_KEY'] = 'nova_frost_2025_super_secreto_ultra_seguro_1234567890!@#'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# ← ESTA LÍNEA ES LA QUE HACÍA FALTA (AHORA "now" FUNCIONA EN TODOS LOS TEMPLATES)
+# "now" disponible en todos los templates
 app.jinja_env.globals['now'] = datetime.utcnow
 
 db.init_app(app)
@@ -28,6 +28,12 @@ def load_user(user_id):
 with app.app_context():
     db.create_all()
 
+    # FORZAMOS RECREAR TODOS LOS USUARIOS DE PRUEBA EN MINÚSCULAS (solo esta vez)
+    # Después de este deploy, BORRAS estas 3 líneas del delete()
+    User.query.filter(User.email != 'admin@novafrost.com').delete()
+    db.session.commit()
+
+    # Admin (siempre queda)
     if not User.query.filter_by(email='admin@novafrost.com').first():
         admin = User(email='admin@novafrost.com', nombre='Admin', apellido='NovaFrost',
                      role='admin', activo=True)
@@ -35,6 +41,7 @@ with app.app_context():
         db.session.add(admin)
         db.session.commit()
 
+    # Usuarios de prueba (siempre en minúsculas)
     usuarios_prueba = [
         ('coordinador@novafrost.com', 'Carlos', 'Ramírez', 'coordinador', 'pass123'),
         ('juan.perez@novafrost.com', 'Juan', 'Pérez', 'tecnico', 'pass123'),
@@ -170,8 +177,7 @@ def enviar_gps():
 def get_gps_tecnicos():
     return jsonify(tecnicos_gps)
 
-# ====================== RUN ======================
-# RUTA TEMPORAL PARA VER USUARIOS (BORRALA DESPUÉS)
+# ====================== DEBUG TEMPORAL (BORRAR DESPUÉS) ======================
 @app.route('/debug-users')
 def debug_users():
     users = User.query.all()
@@ -180,5 +186,7 @@ def debug_users():
         result += f"<li>ID: {u.id} | Email: <strong>{u.email}</strong> | Nombre: {u.nombre_completo()} | Role: {u.role}</li>"
     result += "</ul><p><a href='/'>Volver al login</a></p>"
     return result
+
+# ====================== RUN ======================
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=False)
