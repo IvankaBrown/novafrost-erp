@@ -28,11 +28,6 @@ def load_user(user_id):
 with app.app_context():
     db.create_all()
 
-    # FORZAMOS RECREAR TODOS LOS USUARIOS DE PRUEBA EN MINÚSCULAS (solo esta vez)
-    # Después de este deploy, BORRAS estas 3 líneas del delete()
-    User.query.filter(User.email != 'admin@novafrost.com').delete()
-    db.session.commit()
-
     # Admin (siempre queda)
     if not User.query.filter_by(email='admin@novafrost.com').first():
         admin = User(email='admin@novafrost.com', nombre='Admin', apellido='NovaFrost',
