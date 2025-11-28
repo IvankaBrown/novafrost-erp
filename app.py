@@ -11,6 +11,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///novafrost_erp.db'
 app.config['SECRET_KEY'] = 'nova_frost_2025_super_secreto_ultra_seguro_1234567890!@#'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# ← ESTA LÍNEA ES LA QUE HACÍA FALTA (AHORA "now" FUNCIONA EN TODOS LOS TEMPLATES)
+app.jinja_env.globals['now'] = datetime.utcnow
+
 db.init_app(app)
 
 login_manager = LoginManager()
@@ -21,24 +24,17 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
-# ====================== CREAR DB + USUARIOS INICIALES ======================
+# ====================== CREAR DB + USUARIOS ======================
 with app.app_context():
     db.create_all()
 
-    # Admin principal
     if not User.query.filter_by(email='admin@novafrost.com').first():
-        admin = User(
-            email='admin@novafrost.com',
-            nombre='Admin',
-            apellido='NovaFrost',
-            role='admin',
-            activo=True
-        )
+        admin = User(email='admin@novafrost.com', nombre='Admin', apellido='NovaFrost',
+                     role='admin', activo=True)
         admin.set_password('admin123')
         db.session.add(admin)
         db.session.commit()
 
-    # Usuarios de prueba
     usuarios_prueba = [
         ('coordinador@novafrost.com', 'Carlos', 'Ramírez', 'coordinador', 'pass123'),
         ('juan.perez@novafrost.com', 'Juan', 'Pérez', 'tecnico', 'pass123'),
@@ -68,14 +64,14 @@ def login():
             login_user(user, remember=True)
             flash(f'¡Bienvenido, {user.nombre_completo()}!', 'success')
             return redirect(url_for('dashboard'))
-        flash('Email o contraseña incorrectos, o usuario inactivo', 'danger')
+        flash('Email o contraseña incorrectos', 'danger')
     return render_template('login.html')
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    flash('Has cerrado sesión correctamente', 'info')
+    flash('Sesión cerrada', 'info')
     return redirect(url_for('login'))
 
 @app.route('/dashboard')
@@ -120,12 +116,12 @@ def dashboard():
 
     return render_template('dashboard.html')
 
-# ====================== ADMIN TÉCNICOS (CORREGIDO) ======================
+# ====================== ADMIN TÉCNICOS ======================
 @app.route('/admin/tecnicos')
 @login_required
 def admin_tecnicos():
-    if current_user.role != 'admin':  # ← AQUÍ ESTABA EL ERROR
-        flash('Acceso restringido a administradores', 'danger')
+    if current_user.role != 'admin':
+        flash('Acceso restringido', 'danger')
         return redirect(url_for('dashboard'))
     tecnicos = User.query.filter_by(role='tecnico').order_by(User.fecha_registro.desc()).all()
     return render_template('admin/tecnicos.html', tecnicos=tecnicos)
@@ -133,30 +129,28 @@ def admin_tecnicos():
 @app.route('/admin/tecnicos/nuevo', methods=['GET', 'POST'])
 @login_required
 def nuevo_tecnico():
-    if current_user.role != 'admin':  # ← AQUÍ TAMBIÉN
-        flash('Solo el administrador puede crear técnicos', 'danger')
+    if current_user.role != 'admin':
+        flash('Solo administradores', 'danger')
         return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
         email = request.form['email'].strip().lower()
         if User.query.filter_by(email=email).first():
-            flash('Este email ya está en uso', 'danger')
+            flash('Email ya registrado', 'danger')
         else:
-            nuevo = User(
-                email=email,
-                nombre=request.form['nombre'].strip(),
-                apellido=request.form['apellido'].strip(),
-                role='tecnico',
-                activo=True
-            )
+            nuevo = User(email=email,
+                         nombre=request.form['nombre'].strip(),
+                         apellido=request.form['apellido'].strip(),
+                         role='tecnico',
+                         activo=True)
             nuevo.set_password(request.form['password'])
             db.session.add(nuevo)
             db.session.commit()
-            flash(f'Técnico {nuevo.nombre_completo()} creado con éxito', 'success')
+            flash('Técnico creado con éxito', 'success')
             return redirect(url_for('admin_tecnicos'))
     return render_template('admin/nuevo_tecnico.html')
 
-# ====================== GPS EN TIEMPO REAL ======================
+# ====================== GPS ======================
 tecnicos_gps = {}
 
 @app.route('/enviar_gps', methods=['POST'])
