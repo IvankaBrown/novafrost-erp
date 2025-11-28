@@ -183,5 +183,21 @@ def debug_users():
     return result
 
 # ====================== RUN ======================
+# ====================== RUTAS QUE FALTABAN ======================
+@app.route('/crear_orden', methods=['GET', 'POST'])
+@login_required
+def crear_orden():
+    if current_user.role != 'coordinador':
+        flash('Solo el coordinador puede crear órdenes', 'danger')
+        return redirect(url_for('dashboard'))
+    # Por ahora solo redirige al dashboard (luego lo hacemos completo)
+    flash('Función crear orden en desarrollo', 'info')
+    return redirect(url_for('dashboard'))
+
+@app.route('/listar_clientes')
+@login_required
+def listar_clientes():
+    flash('Listado de clientes en desarrollo', 'info')
+    return redirect(url_for('dashboard'))
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=False)
