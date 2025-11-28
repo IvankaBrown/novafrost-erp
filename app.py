@@ -171,5 +171,14 @@ def get_gps_tecnicos():
     return jsonify(tecnicos_gps)
 
 # ====================== RUN ======================
+# RUTA TEMPORAL PARA VER USUARIOS (BORRALA DESPUÉS)
+@app.route('/debug-users')
+def debug_users():
+    users = User.query.all()
+    result = "<h2>Usuarios en la base de datos:</h2><ul>"
+    for u in users:
+        result += f"<li>ID: {u.id} | Email: <strong>{u.email}</strong> | Nombre: {u.nombre_completo()} | Role: {u.role}</li>"
+    result += "</ul><p><a href='/'>Volver al login</a></p>"
+    return result
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=False)
