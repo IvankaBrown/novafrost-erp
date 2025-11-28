@@ -12,7 +12,7 @@ app.config['SECRET_KEY'] = 'nova_frost_2025_super_secreto_ultra_seguro_123456789
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # "now" disponible en todos los templates
-app.jinja_env.globals['now'] = datetime.utcnow
+app.jinja_env.globals['now'] = datetime.utcnow()   # ← CON PARÉNTESIS
 
 db.init_app(app)
 
