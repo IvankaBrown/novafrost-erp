@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Coordinador - NovaFrost ERP{% endblock %}
 
+{% set now = datetime.utcnow() %} <!-- ← ESTO ES LA CLAVE -->
+
 {% block content %}
 <div class="container py-5">
 
@@ -13,8 +15,8 @@
             <p class="text-muted fs-5">Coordinador de Operaciones • Lima, Perú</p>
         </div>
         <div class="text-end">
-            <div class="fs-4 text-muted">{{ "today" | strftime('%d de %B, %Y') }}</div>
-            <small class="text-muted">{{ "now" | strftime('%I:%M %p') }}</small>
+            <div class="fs-4 text-muted">{{ now.strftime('%d de %B, %Y') }}</div>
+            <small class="text-muted">{{ now.strftime('%I:%M %p') }}</small>
         </div>
     </div>
 
