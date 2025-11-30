@@ -311,5 +311,43 @@ def registrar_pasajes(orden_id):
     return render_template('registrar_pasajes.html', orden=orden, anticipos=anticipos)
 
 # ====================== RUN ======================
+# ====================== GESTIÓN DE CLIENTES (CON MEDIO DE CONTACTO) ======================
+@app.route('/clientes', methods=['GET', 'POST'])
+@login_required
+def clientes():
+    if current_user.role not in ['admin', 'coordinador']:
+        flash('Acceso restringido', 'danger')
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        try:
+            nombre = request.form['nombre'].strip()
+            telefono = request.form.get('telefono', '').strip()
+            direccion = request.form.get('direccion', '').strip()
+            distrito = request.form.get('distrito', '').strip()
+            medio_contacto = request.form['medio_contacto']  # ← NUEVO CAMPO
+
+            # Evitar duplicados
+            existe = Cliente.query.filter_by(nombre=nombre).first()
+            if existe:
+                flash('Este cliente ya existe', 'warning')
+            else:
+                nuevo = Cliente(
+                    nombre=nombre,
+                    telefono=telefono,
+                    direccion=direccion,
+                    distrito=distrito,
+                    medio_contacto=medio_contacto  # ← GUARDADO
+                )
+                db.session.add(nuevo)
+                db.session.commit()
+                flash(f'Cliente {nombre} creado ({medio_contacto})', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash('Error al crear cliente', 'danger')
+
+    clientes = Cliente.query.order_by(Cliente.nombre).all()
+    return render_template('clientes.html', clientes=clientes)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=False)
