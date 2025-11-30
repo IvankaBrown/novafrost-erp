@@ -237,10 +237,39 @@ def crear_orden():
 
     return render_template('crear_orden.html', tecnicos=tecnicos)
 
+# ====================== LISTAR CLIENTES (opcional) ======================
 @app.route('/listar_clientes')
 @login_required
 def listar_clientes():
-    flash('Listado de clientes en desarrollo', 'info')
-    return redirect(url_for('dashboard'))
+    clientes = Cliente.query.order_by(Cliente.nombre).all()
+    return render_template('listar_clientes.html', clientes=clientes)
+
+# ====================== ACTUALIZAR ORDEN (ELIMINA EL 500 DEL TÉCNICO) ======================
+@app.route('/actualizar_orden/<int:orden_id>', methods=['GET', 'POST'])
+@login_required
+def actualizar_orden(orden_id):
+    if current_user.role != 'tecnico':
+        flash('Solo los técnicos pueden actualizar órdenes', 'danger')
+        return redirect(url_for('dashboard'))
+
+    orden = Orden.query.get_or_404(orden_id)
+
+    # Seguridad: el técnico solo puede editar sus propias órdenes
+    if orden.tecnico_id != current_user.id:
+        flash('No tienes permiso para editar esta orden', 'danger')
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        orden.falla = request.form['falla']
+        orden.tipo_aparato = request.form['tipo_aparato']
+        orden.total = float(request.form.get('total') or 0)
+        orden.estado = request.form['estado']
+        db.session.commit()
+        flash('Orden actualizada con éxito', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('actualizar_orden.html', orden=orden)
+
+# ====================== RUN ======================
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=False)

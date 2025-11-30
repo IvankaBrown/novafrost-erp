@@ -1,57 +1,40 @@
 {% extends "base.html" %}
-{% block title %}Actualizar Orden{% endblock %}
+{% block title %}Actualizar Orden #{{ orden.id }}{% endblock %}
+
 {% block content %}
-    <div class="container mt-5" style="max-width: 500px;">
-        <h2 class="mb-4">Actualizar Orden</h2>
-        <form method="POST" action="{{ url_for('actualizar_orden', orden_id=orden.id) }}">
-            <div class="form-group">
-                <label for="cliente_id">Cliente</label>
-                <select class="form-control" id="cliente_id" name="cliente_id" required>
-                    {% for cliente in clientes %}
-                    <option value="{{ cliente.id }}" {% if cliente.id == orden.cliente_id %}selected{% endif %}>{{ cliente.nombre }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="fecha">Fecha</label>
-                <input type="date" class="form-control" id="fecha" name="fecha" value="{{ orden.fecha.strftime('%Y-%m-%d') }}" required>
-            </div>
-            <div class="form-group">
-                <label for="estado">Estado</label>
-                <input type="text" class="form-control" id="estado" name="estado" value="{{ orden.estado }}" required>
-            </div>
-            <div class="form-group">
-                <label for="tipo_aparato">Tipo de Aparato</label>
-                <select class="form-control" id="tipo_aparato" name="tipo_aparato" required>
-                    <option value="Refrigerador" {% if orden.tipo_aparato == 'Refrigerador' %}selected{% endif %}>Refrigerador</option>
-                    <option value="Lavadora" {% if orden.tipo_aparato == 'Lavadora' %}selected{% endif %}>Lavadora</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="tecnico_id">Técnico</label>
-                <select class="form-control" id="tecnico_id" name="tecnico_id">
-                    <option value="">Ninguno</option>
-                    {% for user in tecnicos %}
-                    <option value="{{ user.id }}" {% if user.id == orden.tecnico_id %}selected{% endif %}>{{ user.username }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="falla">Concepto de la Falla</label>
-                <textarea class="form-control" id="falla" name="falla" rows="3">{{ orden.falla }}</textarea>
-            </div>
-            <div class="form-group">
-                <label for="resolucion">Cómo se Resolvió</label>
-                <textarea class="form-control" id="resolucion" name="resolucion" rows="3">{{ orden.resolucion }}</textarea>
-            </div>
-            {% if current_user.role.lower() == 'tecnico' %}
-            <div class="form-group">
-                <label for="pasajes">Gasto de Pasajes</label>
-                <input type="number" class="form-control" id="pasajes" name="pasajes" step="0.01" placeholder="Ingresa monto de pasajes">
-            </div>
-            {% endif %}
-            <button type="submit" class="btn btn-primary btn-block">Actualizar Orden</button>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-2">Volver</a>
-        </form>
+<div class="container py-5">
+    <h2 class="text-center mb-4">Actualizar Orden #{{ orden.id }}</h2>
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Cliente</label>
+                    <input type="text" class="form-control form-control-lg bg-light" value="{{ orden.cliente.nombre }}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Falla</label>
+                    <textarea name="falla" class="form-control" rows="4" required>{{ orden.falla }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Tipo de Aparato</label>
+                    <input type="text" name="tipo_aparato" class="form-control" value="{{ orden.tipo_aparato }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Total</label>
+                    <input type="number" step="0.01" name="total" class="form-control" value="{{ orden.total }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Estado</label>
+                    <select name="estado" class="form-select">
+                        <option value="pendiente" {% if orden.estado=='pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="en_proceso" {% if orden.estado=='en_proceso' %}selected{% endif %}>En Proceso</option>
+                        <option value="completado" {% if orden.estado=='completado' %}selected{% endif %}>Completado</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success btn-lg w-100">Guardar Cambios</button>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg w-100 mt-2">Volver</a>
+            </form>
+        </div>
     </div>
+</div>
 {% endblock %}
