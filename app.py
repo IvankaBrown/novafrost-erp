@@ -80,7 +80,11 @@ def logout():
 @login_required
 def dashboard():
     if current_user.role == 'tecnico':
-        ordenes = Orden.query.filter_by(tecnico_id=current_user.id).all()
+        # ← FIX DEFINITIVO: carga el cliente junto con la orden para que nunca explote
+        ordenes = (Orden.query
+                   .options(db.joinedload(Orden.cliente))
+                   .filter_by(tecnico_id=current_user.id)
+                   .all())
         return render_template('dashboard_tecnico.html', ordenes=ordenes)
 
     elif current_user.role == 'coordinador':
