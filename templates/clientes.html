@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Clientes - NovaFrost ERP{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="display-5 fw-bold text-primary">
+                Gestión de Clientes
+            </h1>
+            <p class="text-muted fs-5">Administra todos los clientes de NovaFrost</p>
+        </div>
+        <button class="btn btn-success btn-lg shadow" data-bs-toggle="modal" data-bs-target="#nuevoClienteModal">
+            Nuevo Cliente
+        </button>
+    </div>
+
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="card-header bg-primary text-white py-4">
+            <h3 class="mb-0">Lista de Clientes ({{ clientes|length }})</h3>
+        </div>
+        <div class="card-body p-0">
+            {% if clientes %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Teléfono</th>
+                            <th>Distrito</th>
+                            <th>Dirección</th>
+                            <th>Medio de contacto</th>
+                            <th>Órdenes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in clientes %}
+                        <tr>
+                            <td class="fw-bold text-primary">{{ c.nombre }}</td>
+                            <td>{{ c.telefono or '—' }}</td>
+                            <td>{{ c.distrito or '—' }}</td>
+                            <td><small>{{ c.direccion or 'Sin dirección' }}</small></td>
+                            <td><span class="badge bg-secondary">{{ c.medio_contacto or 'No especificado' }}</span></td>
+                            <td><span class="badge bg-info">{{ c.ordenes|length }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <h4>No hay clientes registrados aún</h4>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- MODAL NUEVO CLIENTE -->
+<div class="modal fade" id="nuevoClienteModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-4">
+            <form method="POST">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Nuevo Cliente</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Nombre del cliente *</label>
+                            <input type="text" name="nombre" class="form-control form-control-lg" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Teléfono</label>
+                            <input type="text" name="telefono" class="form-control form-control-lg">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Distrito</label>
+                            <input type="text" name="distrito" class="form-control form-control-lg">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Dirección</label>
+                            <input type="text" name="direccion" class="form-control form-control-lg">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Medio de contacto *</label>
+                            <select name="medio_contacto" class="form-select form-select-lg" required>
+                                <option value="Recomendación">Recomendación</option>
+                                <option value="TikTok">TikTok</option>
+                                <option value="Facebook">Facebook</option>
+                                <option value="Instagram">Instagram</option>
+                                <option value="YouTube">YouTube</option>
+                                <option value="Google">Google</option>
+                                <option value="WhatsApp">WhatsApp</option>
+                                <option value="Volante">Volante / Publicidad</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success btn-lg px-4">Crear Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
