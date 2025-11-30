@@ -268,6 +268,48 @@ def actualizar_orden(orden_id):
 
     return render_template('actualizar_orden.html', orden=orden)
 
+# ====================== REGISTRAR PASAJES (FUNCIONA CON TU TEMPLATE ORIGINAL) ======================
+@app.route('/registrar_pasajes/<int:orden_id>', methods=['GET', 'POST'])
+@login_required
+def registrar_pasajes(orden_id):
+    if current_user.role != 'tecnico':
+        flash('Solo los técnicos pueden registrar pasajes', 'danger')
+        return redirect(url_for('dashboard'))
+
+    orden = Orden.query.get_or_404(orden_id)
+    if orden.tecnico_id != current_user.id:
+        flash('Esta orden no te pertenece', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Cargar anticipos del técnico para el select
+    anticipos = Anticipo.query.filter_by(tecnico_id=current_user.id).all()
+
+    if request.method == 'POST':
+        try:
+            anticipo_id = request.form['anticipo_id']
+            origen_destino = request.form['origen_destino'].strip()
+            monto = float(request.form['monto'])
+
+            pasaje = Pasaje(
+                orden_id=orden.id,
+                anticipo_id=anticipo_id,
+                tecnico_id=current_user.id,
+                origen_destino=origen_destino,
+                monto=monto,
+                fecha=datetime.utcnow(),
+                validado=False
+            )
+            db.session.add(pasaje)
+            db.session.commit()
+            flash('Pasaje registrado correctamente', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash('Error al registrar el pasaje', 'danger')
+
+        return redirect(url_for('registrar_pasajes', orden_id=orden.id))
+
+    return render_template('registrar_pasajes.html', orden=orden, anticipos=anticipos)
+
 # ====================== RUN ======================
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=False)
