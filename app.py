@@ -80,10 +80,12 @@ def logout():
 @login_required
 def dashboard():
     if current_user.role == 'tecnico':
-        # ← FIX DEFINITIVO: carga el cliente junto con la orden para que nunca explote
+        # FIX DEFINITIVO: nunca más 500 - carga el cliente y ordena por fecha
+        from sqlalchemy.orm import joinedload
         ordenes = (Orden.query
-                   .options(db.joinedload(Orden.cliente))
+                   .options(joinedload(Orden.cliente))
                    .filter_by(tecnico_id=current_user.id)
+                   .order_by(Orden.fecha.desc())
                    .all())
         return render_template('dashboard_tecnico.html', ordenes=ordenes)
 
