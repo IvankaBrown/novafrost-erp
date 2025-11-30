@@ -244,19 +244,17 @@ def listar_clientes():
     clientes = Cliente.query.order_by(Cliente.nombre).all()
     return render_template('listar_clientes.html', clientes=clientes)
 
-# ====================== ACTUALIZAR ORDEN (ELIMINA EL 500 DEL TÉCNICO) ======================
+# ====================== RUTA ACTUALIZAR ORDEN - ELIMINA EL 500 DEL TÉCNICO ======================
 @app.route('/actualizar_orden/<int:orden_id>', methods=['GET', 'POST'])
 @login_required
 def actualizar_orden(orden_id):
     if current_user.role != 'tecnico':
-        flash('Solo los técnicos pueden actualizar órdenes', 'danger')
+        flash('Acceso restringido', 'danger')
         return redirect(url_for('dashboard'))
 
     orden = Orden.query.get_or_404(orden_id)
-
-    # Seguridad: el técnico solo puede editar sus propias órdenes
     if orden.tecnico_id != current_user.id:
-        flash('No tienes permiso para editar esta orden', 'danger')
+        flash('No puedes editar esta orden', 'danger')
         return redirect(url_for('dashboard'))
 
     if request.method == 'POST':

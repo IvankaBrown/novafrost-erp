@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Actualizar Orden #{{ orden.id }}{% endblock %}
-
 {% block content %}
 <div class="container py-5">
     <h2 class="text-center mb-4">Actualizar Orden #{{ orden.id }}</h2>
@@ -8,30 +7,30 @@
         <div class="col-lg-8">
             <form method="POST">
                 <div class="mb-3">
-                    <label class="form-label">Cliente</label>
-                    <input type="text" class="form-control form-control-lg bg-light" value="{{ orden.cliente.nombre }}" readonly>
+                    <label>Cliente</label>
+                    <input type="text" class="form-control bg-light" value="{{ orden.cliente.nombre }}" readonly>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Falla</label>
+                    <label>Falla</label>
                     <textarea name="falla" class="form-control" rows="4" required>{{ orden.falla }}</textarea>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Tipo de Aparato</label>
+                    <label>Tipo de Aparato</label>
                     <input type="text" name="tipo_aparato" class="form-control" value="{{ orden.tipo_aparato }}" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Total</label>
+                    <label>Total</label>
                     <input type="number" step="0.01" name="total" class="form-control" value="{{ orden.total }}" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Estado</label>
+                    <label>Estado</label>
                     <select name="estado" class="form-select">
                         <option value="pendiente" {% if orden.estado=='pendiente' %}selected{% endif %}>Pendiente</option>
                         <option value="en_proceso" {% if orden.estado=='en_proceso' %}selected{% endif %}>En Proceso</option>
                         <option value="completado" {% if orden.estado=='completado' %}selected{% endif %}>Completado</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-success btn-lg w-100">Guardar Cambios</button>
+                <button type="submit" class="btn btn-success btn-lg w-100">Guardar</button>
                 <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg w-100 mt-2">Volver</a>
             </form>
         </div>
