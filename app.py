@@ -350,4 +350,4 @@ def clientes():
     return render_template('clientes.html', clientes=clientes)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=False)
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=True)

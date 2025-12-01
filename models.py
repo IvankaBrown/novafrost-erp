@@ -76,10 +76,19 @@ class Orden(db.Model):
 
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(100), nullable=False)
+    nombre = db.Column(db.String(100), nullable=False, unique=True)
     telefono = db.Column(db.String(20), nullable=True)
     direccion = db.Column(db.String(200), nullable=True)
+    distrito = db.Column(db.String(100), nullable=True)
+    medio_contacto = db.Column(db.String(100), nullable=False)
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # ¡NO pongas esta línea! La relación se crea automáticamente desde el modelo Orden
+    # ordenes = db.relationship('Orden', backref='cliente', lazy=True)
+
+    def __repr__(self):
+        return f'<Cliente {self.nombre}>'
+    
 class Proveedor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
