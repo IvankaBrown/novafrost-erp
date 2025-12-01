@@ -44,54 +44,62 @@
                     </select>
                 </div>
 
-                <!-- VIDEOS CON PREVISUALIZACIÓN -->
+                <!-- VIDEOS (SIN MACRO, forma segura para Jinja) -->
                 <div class="mt-5 p-4 border rounded-3 bg-light shadow-sm">
-                    <h4 class="text-primary mb-4">
-                        Registro de Videos (Obligatorio para control y marketing)
-                    </h4>
-
-                    <!-- Macro para no repetir código -->
-                    {% macro video_field(name, label, required=False) %}
-                    <div class="col-md-4 mb-4">
-                        <label class="form-label fw-bold {% if required %}text-danger{% else %}text-success{% endif %}">
-                            {{ label }}
-                        </label>
-                        {% if getattr(orden, name) %}
-                            <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
-                                <video controls class="w-100">
-                                    <source src="{{ getattr(orden, name) }}" type="video/mp4">
-                                    Tu navegador no soporta video.
-                                </video>
-                            </div>
-                            <div class="text-success fw-bold">
-                                Video ya subido
-                            </div>
-                        {% else %}
-                            <input type="file" name="{{ name }}" accept="video/*" capture="environment" 
-                                   class="form-control" {% if required %}required{% endif %}>
-                            <small class="text-muted">Obligatorio</small>
-                        {% endif %}
-                    </div>
-                    {% endmacro %}
+                    <h4 class="text-primary mb-4">Registro de Videos</h4>
 
                     <div class="row g-3">
-                        {{ video_field('video_inicial', '1. Video inicial (cómo encontró el equipo)', true) }}
-                        {{ video_field('video_falla', '2. Video describiendo la falla', true) }}
-                        {{ video_field('video_final', '3. Video final (equipo funcionando)', true) }}
+                        <!-- Video inicial -->
+                        <div class="col-md-4 mb-4">
+                            <label class="form-label fw-bold text-danger">1. Video inicial (cómo encontró el equipo)</label>
+                            {% if orden.video_inicial %}
+                                <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
+                                    <video controls class="w-100">
+                                        <source src="{{ orden.video_inicial }}" type="video/mp4">
+                                    </video>
+                                </div>
+                                <div class="text-success fw-bold">Ya subido</div>
+                            {% else %}
+                                <input type="file" name="video_inicial" accept="video/*" capture="environment" class="form-control" required>
+                            {% endif %}
+                        </div>
+
+                        <!-- Video falla -->
+                        <div class="col-md-4 mb-4">
+                            <label class="form-label fw-bold text-danger">2. Video describiendo la falla</label>
+                            {% if orden.video_falla %}
+                                <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
+                                    <video controls class="w-100">
+                                        <source src="{{ orden.video_falla }}" type="video/mp4">
+                                    </video>
+                                </div>
+                                <div class="text-success fw-bold">Ya subido</div>
+                            {% else %}
+                                <input type="file" name="video_falla" accept="video/*" capture="environment" class="form-control" required>
+                            {% endif %}
+                        </div>
+
+                        <!-- Video final -->
+                        <div class="col-md-4 mb-4">
+                            <label class="form-label fw-bold text-success">3. Video final (equipo funcionando)</label>
+                            {% if orden.video_final %}
+                                <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
+                                    <video controls class="w-100">
+                                        <source src="{{ orden.video_final }}" type="video/mp4">
+                                    </video>
+                                </div>
+                                <div class="text-success fw-bold">Ya subido</div>
+                            {% else %}
+                                <input type="file" name="video_final" accept="video/*" capture="environment" class="form-control" required>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <!-- Demora -->
                     <div class="mt-4 p-3 bg-warning bg-opacity-10 border border-warning rounded">
-                        <label class="form-label fw-bold text-warning">
-                            ¿Hubo demora por algo específico?
-                        </label>
-                        <textarea name="justificacion_demora" class="form-control" rows="3" 
-                                  placeholder="Explica qué pasó...">{{ orden.justificacion_demora or '' }}</textarea>
-
-                        <div class="mt-3">
-                            <label class="form-label text-warning">
-                                Video adicional de la demora
-                            </label>
+                        <label class="form-label fw-bold text-warning">¿Hubo demora?</label>
+                        <textarea name="justificacion_demora" class="form-control" rows="3">{{ orden.justificacion_demora or '' }}</textarea>
+                        <div class="mt-2">
                             {% if orden.video_demora %}
                                 <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
                                     <video controls class="w-100">
@@ -101,20 +109,14 @@
                                 <div class="text-success fw-bold">Video de demora ya subido</div>
                             {% else %}
                                 <input type="file" name="video_demora" accept="video/*" capture="environment" class="form-control">
-                                <small class="text-muted">Opcional pero recomendado</small>
                             {% endif %}
                         </div>
                     </div>
                 </div>
 
-                <!-- Botones -->
                 <div class="d-grid gap-3 mt-5">
-                    <button type="submit" class="btn btn-success btn-lg fw-bold">
-                        Guardar y Finalizar Orden
-                    </button>
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg">
-                        Volver al Dashboard
-                    </a>
+                    <button type="submit" class="btn btn-success btn-lg fw-bold">Guardar y Finalizar</button>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg">Volver</a>
                 </div>
             </form>
         </div>
