@@ -194,7 +194,7 @@ function calcularIGV() {
 <div class="modal fade" id="nuevoClienteModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content rounded-4">
-            <form method="POST" action="{{ url_for('clientes') }}">
+            <form method="POST" action="{{ url_for('crear_cliente_desde_orden') }}">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title">Nuevo Cliente</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -241,4 +241,26 @@ function calcularIGV() {
         </div>
     </div>
 </div>
+<script>
+// Si viene cliente_nuevo_id en la URL → seleccionarlo automáticamente
+const urlParams = new URLSearchParams(window.location.search);
+const clienteNuevoId = urlParams.get('cliente_nuevo_id');
+if (clienteNuevoId) {
+    // Buscar el cliente en la base y seleccionarlo
+    fetch(`/buscar_clientes?q=`)
+        .then(r => r.json())
+        .then(clientes => {
+            const cliente = clientes.find(c => c.id == clienteNuevoId);
+            if (cliente) {
+                document.getElementById('buscador_cliente').value = cliente.nombre;
+                document.getElementById('cliente_id').value = cliente.id;
+                document.getElementById('info_nombre').textContent = cliente.nombre;
+                document.getElementById('info_telefono').textContent = cliente.telefono || 'Sin teléfono';
+                document.getElementById('info_distrito').textContent = cliente.distrito || 'Sin distrito';
+                document.getElementById('info_medio').textContent = cliente.medio_contacto;
+                document.getElementById('info_cliente').style.display = 'block';
+            }
+        });
+}
+</script>
 {% endblock %}

@@ -377,5 +377,47 @@ def buscar_clientes():
     
     return jsonify(resultados)
 
+# =============================================
+# CREAR CLIENTE DESDE ORDEN Y VOLVER
+# =============================================
+@app.route('/crear_cliente_desde_orden', methods=['POST'])
+@login_required
+def crear_cliente_desde_orden():
+    if current_user.role not in ['admin', 'coordinador']:
+        flash('Acceso restringido', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        nombre = request.form['nombre'].strip()
+        telefono = request.form.get('telefono', '').strip()
+        direccion = request.form.get('direccion', '').strip()
+        distrito = request.form.get('distrito', '').strip()
+        medio_contacto = request.form['medio_contacto']
+
+        # Evitar duplicados
+        existe = Cliente.query.filter_by(nombre=nombre).first()
+        if existe:
+            flash(f'El cliente "{nombre}" ya existe', 'warning')
+            return redirect(url_for('crear_orden'))
+
+        nuevo = Cliente(
+            nombre=nombre,
+            telefono=telefono,
+            direccion=direccion,
+            distrito=distrito,
+            medio_contacto=medio_contacto
+        )
+        db.session.add(nuevo)
+        db.session.commit()
+
+        flash(f'Cliente {nombre} creado con éxito', 'success')
+        # ← VUELVE A CREAR ORDEN CON EL CLIENTE NUEVO SELECCIONADO
+        return redirect(url_for('crear_orden', cliente_nuevo_id=nuevo.id))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al crear cliente: {str(e)}', 'danger')
+        return redirect(url_for('crear_orden'))
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=True)
