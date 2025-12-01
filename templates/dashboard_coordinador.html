@@ -74,6 +74,19 @@
         </form>
     </div>
 
+    <!-- MAPA EN VIVO DE TÉCNICOS -->
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-5">
+        <div class="card-header bg-success text-white py-4 d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">
+                Ubicación en vivo de técnicos
+            </h3>
+            <small id="ultima-actualizacion" class="opacity-75">Cargando...</small>
+        </div>
+        <div class="card-body p-0">
+            <div id="mapa" style="height: 500px;"></div>
+        </div>
+    </div>
+
     <!-- TABLA DE ÓRDENES -->
     <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-5">
         <div class="card-header bg-primary text-white py-4">
@@ -142,8 +155,75 @@
         </div>
     </div>
 
-    <!-- ANTICIPOS + MAPA + MODAL QUEDAN IGUAL (los tienes perfectos) -->
-    <!-- (no los repito para no alargar, pero están en el código completo que te pasé antes) -->
-
 </div>
+
+<!-- Leaflet CSS + JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// Inicializar mapa centrado en Lima
+const map = L.map('mapa').setView([-12.0464, -77.0428], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+}).addTo(map);
+
+// Marcadores existentes
+let markers = {};
+
+// Función para actualizar el mapa
+function actualizarMapa() {
+    fetch('/get_gps_tecnicos')
+        .then(r => r.json())
+        .then(data => {
+            const ahora = new Date().toLocaleTimeString('es-PE');
+            document.getElementById('ultima-actualizacion').textContent = 'Actualizado: ' + ahora;
+
+            // Limpiar marcadores antiguos
+            Object.keys(markers).forEach(id => {
+                if (!data[id]) map.removeLayer(markers[id]);
+            });
+
+            // Añadir o actualizar marcadores
+            Object.entries(data).forEach(([id, t]) => {
+                const key = id;
+                const icon = L.divIcon({
+                    className: 'text-success',
+                    html: `<i class="bi bi-person-bounding-box fs-1"></i>`,
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 40]
+                });
+
+                if (markers[key]) {
+                    markers[key].setLatLng([t.lat, t.lng])
+                        .setPopupContent(`<strong>${t.nombre}</strong><br>Última actualización: ${t.timestamp}`);
+                } else {
+                    markers[key] = L.marker([t.lat, t.lng], { icon: icon })
+                        .addTo(map)
+                        .bindPopup(`<strong>${t.nombre}</strong><br>Actualizando...`)
+                        .openPopup();
+                }
+
+                // Círculo de precisión
+                L.circle([t.lat, t.lng], {
+                    radius: 80,
+                    color: '#28a745',
+                    fillOpacity: 0.2
+                }).addTo(map);
+            });
+        })
+        .catch(() => {
+            document.getElementById('ultima-actualizacion').textContent = 'Sin conexión';
+        });
+}
+
+// Actualizar cada 8 segundos
+actualizarMapa();
+setInterval(actualizarMapa, 8000);
+</script>
+
+<style>
+#mapa { width: 100%; height: 500px; }
+</style>
+
 {% endblock %}

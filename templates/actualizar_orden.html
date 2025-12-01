@@ -5,33 +5,89 @@
     <h2 class="text-center mb-4">Actualizar Orden #{{ orden.id }}</h2>
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 <div class="mb-3">
-                    <label>Cliente</label>
+                    <label class="form-label fw-bold">Cliente</label>
                     <input type="text" class="form-control bg-light" value="{{ orden.cliente.nombre }}" readonly>
                 </div>
+
                 <div class="mb-3">
-                    <label>Falla</label>
-                    <textarea name="falla" class="form-control" rows="4" required>{{ orden.falla }}</textarea>
+                    <label class="form-label fw-bold">Falla</label>
+                    <textarea name="falla" class="form-control" rows="4" required>{{ orden.falla or '' }}</textarea>
                 </div>
+
                 <div class="mb-3">
-                    <label>Tipo de Aparato</label>
+                    <label class="form-label fw-bold">Tipo de Aparato</label>
                     <input type="text" name="tipo_aparato" class="form-control" value="{{ orden.tipo_aparato }}" required>
                 </div>
+
+                <!-- MONTO OCULTO AL TÉCNICO (PROTEGIDO) -->
                 <div class="mb-3">
-                    <label>Total</label>
-                    <input type="number" step="0.01" name="total" class="form-control" value="{{ orden.total }}" required>
+                    <label class="form-label fw-bold">Monto acordado con cliente</label>
+                    <div class="alert alert-info py-3 text-center">
+                        <strong>Monto confidencial</strong><br>
+                        <small>Solo visible para coordinador y administración</small>
+                    </div>
+                    <input type="hidden" name="total" value="{{ orden.total }}">
                 </div>
+
                 <div class="mb-3">
-                    <label>Estado</label>
-                    <select name="estado" class="form-select">
+                    <label class="form-label fw-bold">Estado</label>
+                    <select name="estado" class="form-select" required>
                         <option value="pendiente" {% if orden.estado=='pendiente' %}selected{% endif %}>Pendiente</option>
                         <option value="en_proceso" {% if orden.estado=='en_proceso' %}selected{% endif %}>En Proceso</option>
                         <option value="completado" {% if orden.estado=='completado' %}selected{% endif %}>Completado</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-success btn-lg w-100">Guardar</button>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg w-100 mt-2">Volver</a>
+
+                <!-- CONTROL DE VIDEOS OBLIGATORIOS (MARKETING + SUPERVISIÓN) -->
+                <div class="mt-5 p-4 border rounded-3 bg-light shadow-sm">
+                    <h4 class="text-primary mb-4">
+                        Registro de Videos (Obligatorio para control y marketing)
+                    </h4>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-danger">
+                                1. Video inicial (cómo encontró el equipo)
+                            </label>
+                            <input type="file" name="video_inicial" accept="video/*" capture="environment" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-danger">
+                                2. Video describiendo la falla encontrada
+                            </label>
+                            <input type="file" name="video_falla" accept="video/*" capture="environment" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-success">
+                                3. Video final (equipo funcionando perfecto)
+                            </label>
+                            <input type="file" name="video_final" accept="video/*" capture="environment" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-warning bg-opacity-10 border border-warning rounded">
+                        <label class="form-label fw-bold text-warning">
+                            ¿Hubo demora por algo específico? (perno atascado, acceso difícil, etc.)
+                        </label>
+                        <textarea name="justificacion_demora" class="form-control" rows="3" 
+                                  placeholder="Explica con detalle qué pasó y por qué tardó más de lo normal..."></textarea>
+                        <div class="mt-2">
+                            <label class="form-label text-warning">Video adicional de la demora (opcional pero recomendado)</label>
+                            <input type="file" name="video_demora" accept="video/*" capture="environment" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-3 mt-5">
+                    <button type="submit" class="btn btn-success btn-lg fw-bold">
+                        Guardar y Finalizar Orden
+                    </button>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg">
+                        Volver al Dashboard
+                    </a>
+                </div>
             </form>
         </div>
     </div>
