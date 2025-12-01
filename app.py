@@ -190,6 +190,7 @@ def debug_users():
 
 # ====================== RUN ======================
 # ====================== RUTAS QUE FALTABAN ======================
+# ====================== CREAR ORDEN (CON BUSCADOR PRO DE CLIENTES) ======================
 @app.route('/crear_orden', methods=['GET', 'POST'])
 @login_required
 def crear_orden():
@@ -201,21 +202,22 @@ def crear_orden():
 
     if request.method == 'POST':
         try:
-            cliente_nombre = request.form['cliente_nombre'].strip()
+            # --- CLIENTE: ahora OBLIGATORIAMENTE viene por ID del buscador ---
+            cliente_id = request.form.get('cliente_id')
+            if not cliente_id or not cliente_id.isdigit():
+                flash('Debe seleccionar un cliente de la lista', 'danger')
+                return redirect(url_for('crear_orden'))
+            
+            cliente = Cliente.query.get_or_404(int(cliente_id))
+
+            # --- RESTO DE CAMPOS ---
             falla = request.form['falla'].strip()
             tecnico_id = request.form['tecnico_id']
             tipo_aparato = request.form['tipo_aparato']
             total = float(request.form['total'])
             urgente = 'urgente' in request.form
 
-            # Crear o buscar cliente
-            cliente = Cliente.query.filter_by(nombre=cliente_nombre).first()
-            if not cliente:
-                cliente = Cliente(nombre=cliente_nombre)
-                db.session.add(cliente)
-                db.session.flush()
-
-            # Crear orden
+            # --- CREAR LA ORDEN ---
             orden = Orden(
                 cliente_id=cliente.id,
                 tecnico_id=tecnico_id,
@@ -228,12 +230,13 @@ def crear_orden():
             db.session.add(orden)
             db.session.commit()
 
-            flash(f'Orden #{orden.id} creada con éxito y asignada', 'success')
+            flash(f'Orden #{orden.id} creada con éxito para {cliente.nombre}', 'success')
             return redirect(url_for('dashboard'))
 
         except Exception as e:
             db.session.rollback()
-            flash('Error al crear la orden', 'danger')
+            flash(f'Error al crear la orden: {str(e)}', 'danger')
+            return redirect(url_for('crear_orden'))
 
     return render_template('crear_orden.html', tecnicos=tecnicos)
 
@@ -348,6 +351,31 @@ def clientes():
 
     clientes = Cliente.query.order_by(Cliente.nombre).all()
     return render_template('clientes.html', clientes=clientes)
+
+# BUSCADOR DE CLIENTES PARA CREAR ORDEN
+@app.route('/buscar_clientes')
+@login_required
+def buscar_clientes():
+    query = request.args.get('q', '').strip()
+    if len(query) < 2:
+        return jsonify([])
+    
+    clientes = Cliente.query.filter(
+        Cliente.nombre.ilike(f'%{query}%')
+    ).order_by(Cliente.nombre).limit(10).all()
+    
+    resultados = []
+    for c in clientes:
+        resultados.append({
+            'id': c.id,
+            'nombre': c.nombre,
+            'telefono': c.telefono or '',
+            'direccion': c.direccion or '',
+            'distrito': c.distrito or '',
+            'medio_contacto': c.medio_contacto or ''
+        })
+    
+    return jsonify(resultados)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=True)
