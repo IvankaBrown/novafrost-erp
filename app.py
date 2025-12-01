@@ -170,7 +170,8 @@ def enviar_gps():
     tecnicos_gps[current_user.id] = {
         "lat": data.get('lat'),
         "lng": data.get('lng'),
-        "timestamp": datetime.utcnow().isoformat()
+        "nombre": current_user.nombre_completo(),
+        "timestamp": datetime.utcnow().strftime("%H:%M:%S")
     }
     return jsonify({"success": True})
 
@@ -261,13 +262,29 @@ def actualizar_orden(orden_id):
         return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
-        orden.falla = request.form['falla']
-        orden.tipo_aparato = request.form['tipo_aparato']
-        orden.total = float(request.form.get('total') or 0)
-        orden.estado = request.form['estado']
-        db.session.commit()
-        flash('Orden actualizada con éxito', 'success')
-        return redirect(url_for('dashboard'))
+        try:
+            orden.falla = request.form['falla']
+            orden.tipo_aparato = request.form['tipo_aparato']
+            orden.estado = request.form['estado']
+            orden.justificacion_demora = request.form.get('justificacion_demora', '')
+
+            # Guardar videos si se subieron
+            for campo in ['video_inicial', 'video_falla', 'video_final', 'video_demora']:
+                if campo in request.files:
+                    file = request.files[campo]
+                    if file and file.filename != '':
+                        filename = f"{orden.id}_{campo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
+                        filepath = os.path.join('static', 'videos', filename)
+                        file.save(filepath)
+                        setattr(orden, campo, f"/static/videos/{filename}")
+
+            db.session.commit()
+            flash('Orden actualizada con éxito', 'success')
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar: {str(e)}', 'danger')
 
     return render_template('actualizar_orden.html', orden=orden)
 

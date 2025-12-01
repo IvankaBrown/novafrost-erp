@@ -73,6 +73,12 @@ class Orden(db.Model):
     igv = db.Column(db.Float, nullable=True)
     total = db.Column(db.Float, nullable=True)
     pasajes = db.relationship('Pasaje', backref='orden', lazy=True)
+        # === VIDEOS DEL TÉCNICO (para control y marketing) ===
+    video_inicial = db.Column(db.String(255), nullable=True)
+    video_falla = db.Column(db.String(255), nullable=True)
+    video_final = db.Column(db.String(255), nullable=True)
+    video_demora = db.Column(db.String(255), nullable=True)
+    justificacion_demora = db.Column(db.Text, nullable=True)
 
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
