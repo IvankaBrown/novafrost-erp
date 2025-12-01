@@ -190,4 +190,55 @@ function calcularIGV() {
     document.getElementById('valor').value = valor.toFixed(2);
 }
 </script>
+<!-- MODAL NUEVO CLIENTE (copiado de clientes.html) -->
+<div class="modal fade" id="nuevoClienteModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-4">
+            <form method="POST" action="{{ url_for('clientes') }}">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Nuevo Cliente</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Nombre del cliente *</label>
+                            <input type="text" name="nombre" class="form-control form-control-lg" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Teléfono</label>
+                            <input type="text" name="telefono" class="form-control form-control-lg">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Distrito</label>
+                            <input type="text" name="distrito" class="form-control form-control-lg">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Dirección</label>
+                            <input type="text" name="direccion" class="form-control form-control-lg">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Medio de contacto *</label>
+                            <select name="medio_contacto" class="form-select form-select-lg" required>
+                                <option value="Recomendación">Recomendación</option>
+                                <option value="TikTok">TikTok</option>
+                                <option value="Facebook">Facebook</option>
+                                <option value="Instagram">Instagram</option>
+                                <option value="YouTube">YouTube</option>
+                                <option value="Google">Google</option>
+                                <option value="WhatsApp">WhatsApp</option>
+                                <option value="Volante">Volante / Publicidad</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success btn-lg px-4">Crear Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
