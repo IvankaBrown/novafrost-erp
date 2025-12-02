@@ -1,12 +1,14 @@
 {
   "name": "NovaFrost ERP",
   "short_name": "NovaFrost",
+  "description": "Sistema de gestión para técnicos de refrigeración - NovaFrost Perú",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0066ff",
   "theme_color": "#0066ff",
   "orientation": "portrait-primary",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/static/logo192.png",
@@ -19,6 +21,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"
+    },
+    {
+      "src": "/static/logo512.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
