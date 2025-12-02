@@ -10,13 +10,17 @@
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <!-- PWA -->
+    <!-- PWA MANIFEST + ICONOS (TODO CORRECTO) -->
     <link rel="manifest" href="/static/manifest.json">
     <link rel="apple-touch-icon" sizes="192x192" href="/static/logo192.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/static/logo512.png">
     <link rel="icon" href="/static/logo192.png" sizes="192x192">
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0066ff">
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0044cc">
+    
+    <!-- COLORES DE BARRA (Android + iOS) -->
+    <meta name="theme-color" content="#0066ff">
+    <meta name="msapplication-TileColor" content="#0066ff">
+    <meta name="apple-mobile-web-app-status-bar-style" content="blue">
+    <meta name="apple-mobile-web-app-capable" content="yes">
 
     <style>
         body {
@@ -25,21 +29,11 @@
             margin: 0;
             padding-bottom: 60px;
         }
-        .navbar-brand img {
-            height: 40px;
-        }
-        .user-name {
-            font-weight: 600;
-            color: #fff;
-        }
+        .navbar-brand img { height: 40px; }
+        .user-name { font-weight: 600; color: #fff; }
         .flash-messages {
-            position: fixed;
-            top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1055;
-            max-width: 500px;
-            width: 90%;
+            position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+            z-index: 1055; max-width: 500px; width: 90%;
         }
     </style>
 
@@ -49,7 +43,7 @@
     <script src="/static/firebase-init.js"></script>
     <script src="/static/push.js"></script>
 
-    <!-- Service Worker -->
+    <!-- SERVICE WORKER (registrado correctamente) -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -60,23 +54,47 @@
         }
     </script>
 
+    <!-- BOTÓN "Instalar app" AUTOMÁTICO (solo aparece si es instalable) -->
+    <script>
+        let installPrompt;
+        const installButton = document.createElement('button');
+        installButton.textContent = 'Instalar NovaFrost';
+        installButton.className = 'btn btn-success btn-lg position-fixed bottom-0 start-50 translate-middle-x mb-3 shadow-lg';
+        installButton.style.display = 'none';
+        installButton.style.zIndex = '9999';
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            installPrompt = e;
+            installButton.style.display = 'block';
+            document.body.appendChild(installButton);
+        });
+
+        installButton.addEventListener('click', async () => {
+            if (!installPrompt) return;
+            installPrompt.prompt();
+            const { outcome } = await installPrompt.userChoice;
+            if (outcome === 'accepted') {
+                installButton.remove();
+            }
+            installPrompt = null;
+        });
+    </script>
+
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-
-    <!-- NAVBAR FIJO ARRIBA -->
+    <!-- Tu navbar y todo lo demás igual -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm fixed-top">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('dashboard') }}">
                 <img src="/static/logo.png" alt="Logo">
                 <strong>NOVA FROST</strong>
             </a>
-
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-
-            <div class="collapse navbar-collapse" id="navbarNav">
+            <div class="collapse navbar-collapse" id="#navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item me-3">
@@ -88,7 +106,7 @@
                         </li>
                         <li class="nav-item">
                             <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
-                                <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+                                Cerrar sesión
                             </a>
                         </li>
                     {% endif %}
@@ -97,7 +115,7 @@
         </div>
     </nav>
 
-    <!-- FLASH MESSAGES (flotantes arriba) -->
+    <!-- Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="flash-messages">
@@ -115,7 +133,6 @@
         {% endif %}
     {% endwith %}
 
-    <!-- CONTENIDO PRINCIPAL -->
     <main class="container pt-5 mt-4">
         {% block content %}{% endblock %}
     </main>
