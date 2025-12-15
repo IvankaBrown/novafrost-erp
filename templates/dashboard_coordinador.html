@@ -88,73 +88,101 @@
     </div>
 
     <!-- TABLA DE ÓRDENES -->
-    <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-5">
-        <div class="card-header bg-primary text-white py-4">
-            <h3 class="mb-0">Órdenes Recientes</h3>
-        </div>
-        <div class="card-body p-0">
-            {% if ordenes %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th>ID</th>
-                            <th>Cliente</th>
-                            <th>Técnico</th>
-                            <th>Estado</th>
-                            <th>Falla</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for orden in ordenes %}
-                        <tr>
-                            <td class="fw-bold text-primary">#{{ orden.id }}</td>
-                            <td>
-                                <div class="fw-bold">{{ orden.cliente.nombre }}</div>
-                                <small class="text-muted">{{ orden.cliente.telefono or 'Sin teléfono' }}</small>
-                            </td>
-                            <td>
-                                {% if orden.tecnico %}
-                                    <span class="text-success fw-bold">{{ orden.tecnico.nombre_completo() }}</span>
-                                {% else %}
-                                    <em class="text-muted">Sin asignar</em>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <span class="badge rounded-pill px-3 py-2
-                                    {% if orden.estado == 'completado' %}bg-success
-                                    {% elif orden.estado == 'pendiente' %}bg-warning text-dark
-                                    {% elif orden.estado == 'urgente' %}bg-danger
-                                    {% else %}bg-secondary{% endif %}">
-                                    {{ orden.estado|title }}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="text-truncate" style="max-width: 250px;">
-                                    {{ orden.falla|default('Sin descripción') }}
-                                </div>
-                            </td>
-                            <td>
-                                <div class="btn-group">
-                                    <a href="#" class="btn btn-outline-primary btn-sm">Ver</a>
-                                    <a href="https://wa.me/?text=*ORDEN #{{ orden.id }}*%0ACliente:* {{ orden.cliente.nombre }}%0AFalla:* {{ (orden.falla or 'Sin descripción')|urlencode }}"
-                                       target="_blank" class="btn btn-success btn-sm">WhatsApp</a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-5">
-                <h4 class="text-muted">No hay órdenes registradas</h4>
-            </div>
-            {% endif %}
-        </div>
+<div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-5">
+    <div class="card-header bg-primary text-white py-4">
+        <h3 class="mb-0">Órdenes Recientes</h3>
     </div>
-
+    <div class="card-body p-0">
+        {% if ordenes %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Técnico</th>
+                        <th>Estado</th>
+                        <th>Falla Reportada / Diagnosticada</th>
+                        <th>Acciones</th>
+                        <th class="text-center">Check Final</th> <!-- NUEVA COLUMNA -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for orden in ordenes %}
+                    <tr class="{% if orden.estado == 'urgente' %}table-danger{% elif orden.estado == 'completado' %}table-success table-success-opacity-10{% endif %}">
+                        <td class="fw-bold text-primary">#{{ orden.id }}</td>
+                        <td>
+                            <div class="fw-bold">{{ orden.cliente.nombre }}</div>
+                            <small class="text-muted">{{ orden.cliente.telefono or 'Sin teléfono' }}</small>
+                        </td>
+                        <td>
+                            {% if orden.tecnico %}
+                                <span class="text-success fw-bold">{{ orden.tecnico.nombre_completo() }}</span>
+                            {% else %}
+                                <em class="text-muted">Sin asignar</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill px-3 py-2
+                                {% if orden.estado == 'completado' %}bg-success
+                                {% elif orden.estado == 'pendiente' %}bg-warning text-dark
+                                {% elif orden.estado == 'urgente' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ orden.estado|title }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="mb-2">
+                                <strong class="text-primary">Reportada por cliente:</strong><br>
+                                <small class="text-muted">{{ orden.falla|default('Sin descripción') }}</small>
+                            </div>
+                            {% if orden.falla_encontrada %}
+                            <div>
+                                <strong class="text-danger">Diagnosticada por técnico:</strong><br>
+                                <small>{{ orden.falla_encontrada }}</small>
+                            </div>
+                            {% else %}
+                            <small class="text-muted">Pendiente de diagnóstico</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <!-- BOTÓN VER → abre actualizar_orden pero en modo solo lectura -->
+                                <a href="{{ url_for('ver_orden', orden_id=orden.id) }}"
+                                   class="btn btn-outline-primary btn-sm" title="Ver detalles">
+                                    <i class="bi bi-eye"></i> Ver
+                                </a>
+                                <a href="https://wa.me/?text=*ORDEN #{{ orden.id }}*%0ACliente:* {{ orden.cliente.nombre }}%0AFalla:* {{ (orden.falla or 'Sin descripción')|urlencode }}"
+                                   target="_blank" class="btn btn-success btn-sm">
+                                    <i class="bi bi-whatsapp"></i> WhatsApp
+                                </a>
+                            </div>
+                        </td>
+                        <!-- BOTÓN CHECK FINAL (solo si está completado y tiene video final) -->
+                        <td class="text-center">
+                            {% if orden.estado == 'completado' and orden.video_final %}
+                                <a href="{{ url_for('check_orden', orden_id=orden.id) }}" 
+                                   class="btn btn-warning btn-sm fw-bold shadow-sm" 
+                                   onclick="return confirm('¿Confirmas que el trabajo está OK? Se enviará WhatsApp al cliente')">
+                                    Check & Enviar
+                                </a>
+                            {% elif orden.estado == 'completado' %}
+                                <small class="text-muted">Falta video final</small>
+                            {% else %}
+                                <small class="text-muted">Pendiente</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <h4 class="text-muted">No hay órdenes registradas</h4>
+        </div>
+        {% endif %}
+    </div>
 </div>
 
 <!-- Leaflet CSS + JS -->

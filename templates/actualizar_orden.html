@@ -12,60 +12,55 @@
                     <input type="text" class="form-control bg-light" value="{{ orden.cliente.nombre }}" readonly>
                 </div>
 
-                <!-- Falla -->
+                <!-- Falla REPORTADA POR EL CLIENTE (solo lectura) -->
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Falla</label>
-                    <textarea name="falla" class="form-control" rows="4" required>{{ orden.falla or '' }}</textarea>
+                    <label class="form-label fw-bold text-primary">Falla reportada por el cliente</label>
+                    <textarea class="form-control bg-light" rows="3" readonly>{{ orden.falla or 'No reportada' }}</textarea>
                 </div>
 
-                <!-- Tipo de Aparato -->
+                <!-- Falla ENCONTRADA POR EL TÉCNICO (editable) -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-danger">Falla encontrada / Diagnóstico</label>
+                    <textarea name="falla_encontrada" class="form-control" rows="4" placeholder="Describe lo que realmente encontraste (ej: motor quemado, fuga de gas, etc.)" required>{{ orden.falla_encontrada or '' }}</textarea>
+                </div>
+
+                <!-- Tipo de Aparato (solo lectura) -->
                 <div class="mb-3">
                     <label class="form-label fw-bold">Tipo de Aparato</label>
-                    <input type="text" name="tipo_aparato" class="form-control" value="{{ orden.tipo_aparato }}" required>
+                    <input type="text" class="form-control bg-light" value="{{ orden.tipo_aparato }}" readonly>
                 </div>
 
                 <!-- Monto oculto -->
+                <input type="hidden" name="total" value="{{ orden.total }}">
+
+                <!-- Estado (solo lectura) -->
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Monto acordado con cliente</label>
-                    <div class="alert alert-info py-3 text-center">
-                        <strong>Monto confidencial</strong><br>
-                        <small>Solo visible para coordinador y administración</small>
-                    </div>
-                    <input type="hidden" name="total" value="{{ orden.total }}">
+                    <label class="form-label fw-bold">Estado Actual</label>
+                    <input type="text" class="form-control bg-light" value="{{ orden.estado|title }}" readonly>
                 </div>
 
-                <!-- Estado -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Estado</label>
-                    <select name="estado" class="form-select" required>
-                        <option value="pendiente" {% if orden.estado=='pendiente' %}selected{% endif %}>Pendiente</option>
-                        <option value="en_proceso" {% if orden.estado=='en_proceso' %}selected{% endif %}>En Proceso</option>
-                        <option value="completado" {% if orden.estado=='completado' %}selected{% endif %}>Completado</option>
-                    </select>
-                </div>
-
-                <!-- VIDEOS (SIN MACRO, forma segura para Jinja) -->
+                <!-- VIDEOS (solo reproducción) -->
                 <div class="mt-5 p-4 border rounded-3 bg-light shadow-sm">
                     <h4 class="text-primary mb-4">Registro de Videos</h4>
 
                     <div class="row g-3">
                         <!-- Video inicial -->
-                        <div class="col-md-4 mb-4">
-                            <label class="form-label fw-bold text-danger">1. Video inicial (cómo encontró el equipo)</label>
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-bold text-danger">1. Video inicial</label>
                             {% if orden.video_inicial %}
                                 <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
                                     <video controls class="w-100">
                                         <source src="{{ orden.video_inicial }}" type="video/mp4">
                                     </video>
                                 </div>
-                                <div class="text-success fw-bold">Ya subido</div>
+                                <div class="text-success fw-bold text-center">Ya subido</div>
                             {% else %}
                                 <input type="file" name="video_inicial" accept="video/*" capture="environment" class="form-control" required>
                             {% endif %}
                         </div>
 
                         <!-- Video falla -->
-                        <div class="col-md-4 mb-4">
+                        <div class="col-md-6 mb-4">
                             <label class="form-label fw-bold text-danger">2. Video describiendo la falla</label>
                             {% if orden.video_falla %}
                                 <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
@@ -73,51 +68,74 @@
                                         <source src="{{ orden.video_falla }}" type="video/mp4">
                                     </video>
                                 </div>
-                                <div class="text-success fw-bold">Ya subido</div>
+                                <div class="text-success fw-bold text-center">Ya subido</div>
                             {% else %}
                                 <input type="file" name="video_falla" accept="video/*" capture="environment" class="form-control" required>
                             {% endif %}
                         </div>
 
                         <!-- Video final -->
-                        <div class="col-md-4 mb-4">
-                            <label class="form-label fw-bold text-success">3. Video final (equipo funcionando)</label>
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-bold text-success">3. Video final</label>
                             {% if orden.video_final %}
                                 <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
                                     <video controls class="w-100">
                                         <source src="{{ orden.video_final }}" type="video/mp4">
                                     </video>
                                 </div>
-                                <div class="text-success fw-bold">Ya subido</div>
+                                <div class="text-success fw-bold text-center">Ya subido</div>
                             {% else %}
                                 <input type="file" name="video_final" accept="video/*" capture="environment" class="form-control" required>
                             {% endif %}
                         </div>
-                    </div>
 
-                    <!-- Demora -->
-                    <div class="mt-4 p-3 bg-warning bg-opacity-10 border border-warning rounded">
-                        <label class="form-label fw-bold text-warning">¿Hubo demora?</label>
-                        <textarea name="justificacion_demora" class="form-control" rows="3">{{ orden.justificacion_demora or '' }}</textarea>
-                        <div class="mt-2">
+                        <!-- Video demora -->
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-bold text-warning">4. Video de demora (opcional)</label>
                             {% if orden.video_demora %}
                                 <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
                                     <video controls class="w-100">
                                         <source src="{{ orden.video_demora }}" type="video/mp4">
                                     </video>
                                 </div>
-                                <div class="text-success fw-bold">Video de demora ya subido</div>
+                                <div class="text-success fw-bold text-center">Ya subido</div>
                             {% else %}
                                 <input type="file" name="video_demora" accept="video/*" capture="environment" class="form-control">
                             {% endif %}
                         </div>
                     </div>
+
+                    <!-- Justificación demora -->
+                    <div class="mt-4 p-3 bg-warning bg-opacity-10 border border-warning rounded">
+                        <label class="form-label fw-bold text-warning">¿Hubo demora?</label>
+                        <textarea name="justificacion_demora" class="form-control" rows="3">{{ orden.justificacion_demora or '' }}</textarea>
+                    </div>
                 </div>
 
                 <div class="d-grid gap-3 mt-5">
-                    <button type="submit" class="btn btn-success btn-lg fw-bold">Guardar y Finalizar</button>
+                    <button type="submit" id="btnGuardar" class="btn btn-success btn-lg fw-bold">
+                        <span id="btnText">Guardar y Finalizar</span>
+                        <span id="btnLoading" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                    </button>
                     <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg">Volver</a>
                 </div>
+
+                <script>
+                    const form = document.querySelector('form');
+                    const btnGuardar = document.getElementById('btnGuardar');
+                    const btnText = document.getElementById('btnText');
+                    const btnLoading = document.getElementById('btnLoading');
+
+                    form.addEventListener('submit', function(e) {
+                        // Deshabilita el botón y muestra spinner
+                        btnGuardar.disabled = true;
+                        btnText.textContent = 'Guardando videos, por favor espera...';
+                        btnLoading.classList.remove('d-none');
+
+                        // Opcional: si quieres forzar espera mínima de 5 segundos (para videos grandes)
+                        // setTimeout(() => {}, 5000);
+                    });   
+                </script>
             </form>
         </div>
     </div>

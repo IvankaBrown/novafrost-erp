@@ -55,7 +55,9 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return f'<User {self.email} - {self.role}>'
-
+    
+    numero_whatsapp = db.Column(db.String(20), nullable=True)  # ej: '960632630'
+    
 # EL RESTO DE TUS MODELOS QUEDA EXACTAMENTE IGUAL
 # (Solo copio los que ya tenías para que no pierdas nada)
 
@@ -67,18 +69,24 @@ class Orden(db.Model):
     estado = db.Column(db.String(20), nullable=False)
     tipo_aparato = db.Column(db.String(50), nullable=False, default='Refrigerador')
     falla = db.Column(db.String(200), nullable=True)
+    falla_encontrada = db.Column(db.Text, nullable=True)  # Diagnóstico del técnico
     resolucion = db.Column(db.String(200), nullable=True)
-    cliente = db.relationship('Cliente', backref='ordenes', lazy=True)
     valor = db.Column(db.Float, nullable=True)
     igv = db.Column(db.Float, nullable=True)
     total = db.Column(db.Float, nullable=True)
-    pasajes = db.relationship('Pasaje', backref='orden', lazy=True)
-        # === VIDEOS DEL TÉCNICO (para control y marketing) ===
     video_inicial = db.Column(db.String(255), nullable=True)
     video_falla = db.Column(db.String(255), nullable=True)
     video_final = db.Column(db.String(255), nullable=True)
     video_demora = db.Column(db.String(255), nullable=True)
     justificacion_demora = db.Column(db.Text, nullable=True)
+
+    # NUEVOS CAMPOS PARA WHATSAPP Y PAGO
+    fecha_hora_atencion = db.Column(db.DateTime, nullable=True)  # Fecha y hora programada
+    medio_pago = db.Column(db.String(50), nullable=True)  # yape, plin, efectivo, otro
+    tipo_comprobante = db.Column(db.String(50), nullable=True)  # boleta, factura, otro
+
+    cliente = db.relationship('Cliente', backref='ordenes', lazy=True)
+    pasajes = db.relationship('Pasaje', backref='orden', lazy=True)
 
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)

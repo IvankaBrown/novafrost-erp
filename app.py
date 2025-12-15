@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, current_app, send_from_directory
+from moviepy import VideoFileClip
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import db
 from models import User, Orden, Cliente, Anticipo, Pasaje
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 
 app = Flask(__name__)
@@ -11,8 +12,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///novafrost_erp.db'
 app.config['SECRET_KEY'] = 'nova_frost_2025_super_secreto_ultra_seguro_1234567890!@#'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# "now" disponible en todos los templates
-app.jinja_env.globals['now'] = datetime.utcnow()   # ← CON PARÉNTESIS
+# "now" como datetime real (funciona con .strftime en templates)
+app.jinja_env.globals['now'] = datetime.now(timezone.utc)
 
 db.init_app(app)
 
@@ -203,22 +204,26 @@ def crear_orden():
 
     if request.method == 'POST':
         try:
-            # --- CLIENTE: ahora OBLIGATORIAMENTE viene por ID del buscador ---
+            # Cliente por ID (buscador PRO)
             cliente_id = request.form.get('cliente_id')
             if not cliente_id or not cliente_id.isdigit():
                 flash('Debe seleccionar un cliente de la lista', 'danger')
                 return redirect(url_for('crear_orden'))
-            
             cliente = Cliente.query.get_or_404(int(cliente_id))
 
-            # --- RESTO DE CAMPOS ---
+            # Campos básicos
             falla = request.form['falla'].strip()
             tecnico_id = request.form['tecnico_id']
             tipo_aparato = request.form['tipo_aparato']
             total = float(request.form['total'])
             urgente = 'urgente' in request.form
 
-            # --- CREAR LA ORDEN ---
+            # NUEVOS CAMPOS OBLIGATORIOS
+            fecha_hora_str = request.form['fecha_hora_atencion']
+            medio_pago = request.form['medio_pago']
+            tipo_comprobante = request.form['tipo_comprobante']
+
+            # Crear orden con todos los datos
             orden = Orden(
                 cliente_id=cliente.id,
                 tecnico_id=tecnico_id,
@@ -226,12 +231,48 @@ def crear_orden():
                 tipo_aparato=tipo_aparato,
                 total=total,
                 estado='urgente' if urgente else 'pendiente',
-                fecha=datetime.utcnow()
+                fecha=datetime.utcnow(),
+                fecha_hora_atencion=datetime.fromisoformat(fecha_hora_str),
+                medio_pago=medio_pago,
+                tipo_comprobante=tipo_comprobante
             )
             db.session.add(orden)
             db.session.commit()
 
-            flash(f'Orden #{orden.id} creada con éxito para {cliente.nombre}', 'success')
+            # === WHATSAPP AUTOMÁTICO ===
+            tecnico = User.query.get(tecnico_id)
+
+            # Al técnico
+            if tecnico.numero_whatsapp:
+                enviar_whatsapp(
+                    to=tecnico.numero_whatsapp,
+                    template_name="nueva_orden_tecnico",
+                    params=[
+                        {"type": "text", "text": tecnico.nombre_completo()},
+                        {"type": "text", "text": str(orden.id)},
+                        {"type": "text", "text": cliente.nombre},
+                        {"type": "text", "text": falla},
+                        {"type": "text", "text": fecha_hora_str.replace("T", " a las ")}
+                    ]
+                )
+
+            # Al cliente
+            if cliente.telefono:
+                enviar_whatsapp(
+                    to="51" + cliente.telefono.replace(" ", ""),
+                    template_name="orden_creada_cliente",
+                    params=[
+                        {"type": "text", "text": cliente.nombre.split()[0]},
+                        {"type": "text", "text": str(orden.id)},
+                        {"type": "text", "text": fecha_hora_str.replace("T", " a las ")},
+                        {"type": "text", "text": tecnico.nombre_completo()},
+                        {"type": "text", "text": f"S/. {total}"},
+                        {"type": "text", "text": medio_pago.upper()},
+                        {"type": "text", "text": tipo_comprobante.upper()}
+                    ]
+                )
+
+            flash(f'Orden #{orden.id} creada y notificaciones enviadas', 'success')
             return redirect(url_for('dashboard'))
 
         except Exception as e:
@@ -262,31 +303,56 @@ def actualizar_orden(orden_id):
         return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
-        try:
-            orden.falla = request.form['falla']
-            orden.tipo_aparato = request.form['tipo_aparato']
-            orden.estado = request.form['estado']
-            orden.justificacion_demora = request.form.get('justificacion_demora', '')
+       try:
+           # NO TOCAMOS orden.falla (queda la original del cliente)
+           orden.falla_encontrada = request.form['falla_encontrada'].strip()
+           orden.justificacion_demora = request.form.get('justificacion_demora', '').strip()
 
-            # Guardar videos si se subieron
-            for campo in ['video_inicial', 'video_falla', 'video_final', 'video_demora']:
-                if campo in request.files:
-                    file = request.files[campo]
-                    if file and file.filename != '':
-                        filename = f"{orden.id}_{campo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
-                        filepath = os.path.join('static', 'videos', filename)
-                        file.save(filepath)
-                        setattr(orden, campo, f"/static/videos/{filename}")
+           # GUARDAR VIDEOS
+           upload_folder = os.path.join(current_app.root_path, 'static', 'videos')
+           os.makedirs(upload_folder, exist_ok=True)
 
-            db.session.commit()
-            flash('Orden actualizada con éxito', 'success')
-            return redirect(url_for('dashboard'))
+           for campo in ['video_inicial', 'video_falla', 'video_final', 'video_demora']:
+               file = request.files.get(campo)
+               if file and file.filename:
+                   # Limitar tamaño máximo (10MB)
+                   file.seek(0, os.SEEK_END)
+                   file_size = file.tell()
+                   file.seek(0)
+                   if file_size > 10 * 1024 * 1024:
+                       flash(f'Video {campo} demasiado grande (máximo 10MB)', 'danger')
+                       continue
 
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error al actualizar: {str(e)}', 'danger')
+                   ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'mp4'
+                   timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+                   filename = f"orden_{orden.id}_{campo}_{timestamp}.{ext}"
+                   filepath = os.path.join(upload_folder, filename)
+                   file.save(filepath)
+
+                   # Compresión automática
+                   clip = VideoFileClip(filepath)
+                   compressed_path = filepath  # Sobrescribir el original
+                   clip.write_videofile(compressed_path, codec='libx264', bitrate='1000k')
+                   clip.close()
+
+                   setattr(orden, campo, f"/videos/{filename}")  # Usar nueva ruta protegida
+                   print(f"Video guardado y comprimido: {campo} → {filename}")
+
+           db.session.commit()
+           flash('¡Orden actualizada y videos guardados con éxito!', 'success')
+           return redirect(url_for('dashboard'))
+
+       except Exception as e:
+           db.session.rollback()
+           flash(f'Error al guardar: {str(e)}', 'danger')
 
     return render_template('actualizar_orden.html', orden=orden)
+
+# Nueva ruta protegida para servir videos
+@app.route('/videos/<filename>')
+@login_required
+def serve_video(filename):
+    return send_from_directory(os.path.join(app.root_path, 'static/videos'), filename)
 
 # ====================== REGISTRAR PASAJES (FUNCIONA CON TU TEMPLATE ORIGINAL) ======================
 @app.route('/registrar_pasajes/<int:orden_id>', methods=['GET', 'POST'])
@@ -435,6 +501,42 @@ def crear_cliente_desde_orden():
         db.session.rollback()
         flash(f'Error al crear cliente: {str(e)}', 'danger')
         return redirect(url_for('crear_orden'))
+    
+@app.route('/check_orden/<int:orden_id>', methods=['GET'])
+@login_required
+def check_orden(orden_id):
+    if current_user.role != 'coordinador':
+        flash('Acceso restringido', 'danger')
+        return redirect(url_for('dashboard'))
+
+    orden = Orden.query.get_or_404(orden_id)
+
+    # ENVIAR WHATSAPP AL CLIENTE
+    if orden.cliente.telefono:
+        enviar_whatsapp(orden.cliente.telefono, 'orden_completada_cliente', params=[
+            orden.cliente.nombre.split()[0],
+            str(orden.id),
+            orden.video_final,
+            str(orden.total),
+            orden.medio_pago.upper(),
+            orden.tipo_comprobante.upper()
+        ])
+
+    flash(f'Orden #{orden.id} confirmada y notificación enviada al cliente', 'success')
+    return redirect(url_for('dashboard'))
+
+@app.route('/ver_orden/<int:orden_id>')
+@login_required
+def ver_orden(orden_id):
+    orden = Orden.query.get_or_404(orden_id)
+    
+    # Coordinador y técnico pueden ver
+    if current_user.role not in ['coordinador', 'tecnico'] or \
+       (current_user.role == 'tecnico' and orden.tecnico_id != current_user.id):
+        flash('Acceso restringido', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    return render_template('ver_orden.html', orden=orden)    
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=True)
