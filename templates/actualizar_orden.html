@@ -55,7 +55,7 @@
                                 </div>
                                 <div class="text-success fw-bold text-center">Ya subido</div>
                             {% else %}
-                                <input type="file" name="video_inicial" accept="video/*" capture="environment" class="form-control" required>
+                                <input type="file" name="video_inicial" id="video_inicial" accept="video/*" capture="environment" class="form-control">
                             {% endif %}
                         </div>
 
@@ -70,7 +70,7 @@
                                 </div>
                                 <div class="text-success fw-bold text-center">Ya subido</div>
                             {% else %}
-                                <input type="file" name="video_falla" accept="video/*" capture="environment" class="form-control" required>
+                                <input type="file" name="video_falla" id="video_falla" accept="video/*" capture="environment" class="form-control">
                             {% endif %}
                         </div>
 
@@ -85,7 +85,7 @@
                                 </div>
                                 <div class="text-success fw-bold text-center">Ya subido</div>
                             {% else %}
-                                <input type="file" name="video_final" accept="video/*" capture="environment" class="form-control" required>
+                                <input type="file" name="video_final" id="video_final" accept="video/*" capture="environment" class="form-control">
                             {% endif %}
                         </div>
 
@@ -100,7 +100,7 @@
                                 </div>
                                 <div class="text-success fw-bold text-center">Ya subido</div>
                             {% else %}
-                                <input type="file" name="video_demora" accept="video/*" capture="environment" class="form-control">
+                                <input type="file" name="video_demora" id="video_demora" accept="video/*" capture="environment" class="form-control">
                             {% endif %}
                         </div>
                     </div>
@@ -114,10 +114,10 @@
 
                 <div class="d-grid gap-3 mt-5">
                     <button type="submit" id="btnGuardar" class="btn btn-success btn-lg fw-bold">
-                        <span id="btnText">Guardar y Finalizar</span>
+                        <span id="btnText">Guardar Cambios</span>
                         <span id="btnLoading" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
                     </button>
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg">Volver</a>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg">Volver al Dashboard</a>
                 </div>
 
                 <script>
@@ -127,13 +127,9 @@
                     const btnLoading = document.getElementById('btnLoading');
 
                     form.addEventListener('submit', function(e) {
-                        // Deshabilita el botón y muestra spinner
                         btnGuardar.disabled = true;
                         btnText.textContent = 'Guardando videos, por favor espera...';
                         btnLoading.classList.remove('d-none');
-
-                        // Opcional: si quieres forzar espera mínima de 5 segundos (para videos grandes)
-                        // setTimeout(() => {}, 5000);
                     });   
                 </script>
             </form>

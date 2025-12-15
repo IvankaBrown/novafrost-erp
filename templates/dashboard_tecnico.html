@@ -33,6 +33,9 @@
         font-size: 0.9rem;
         padding: 0.5em 0.8em;
     }
+    .video-status {
+        margin: 10px 0;
+    }
 </style>
 
 <div class="container mt-4">
@@ -91,6 +94,7 @@
                             <th>Estado</th>
                             <th>Aparato</th>
                             <th>Falla</th>
+                            <th>Videos</th>
                             <th>Acción</th>
                             <th>Pasajes</th>
                         </tr>
@@ -125,10 +129,56 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}" 
-                                       class="btn btn-primary btn-sm">
-                                        <i class="fas fa-edit"></i> Actualizar
-                                    </a>
+                                    <div class="video-status">
+                                        <!-- Video Inicial -->
+                                        {% if orden.video_inicial %}
+                                            <span class="badge bg-success mb-1"><i class="fas fa-check"></i> Inicial</span><br>
+                                        {% else %}
+                                            <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}#video_inicial" class="btn btn-sm btn-outline-primary mb-1">
+                                                <i class="fas fa-video"></i> Inicial
+                                            </a><br>
+                                        {% endif %}
+
+                                        <!-- Video Falla -->
+                                        {% if orden.video_falla %}
+                                            <span class="badge bg-success mb-1"><i class="fas fa-check"></i> Falla</span><br>
+                                        {% else %}
+                                            <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}#video_falla" class="btn btn-sm btn-outline-primary mb-1">
+                                                <i class="fas fa-video"></i> Falla
+                                            </a><br>
+                                        {% endif %}
+
+                                        <!-- Video Final -->
+                                        {% if orden.video_final %}
+                                            <span class="badge bg-success mb-1"><i class="fas fa-check"></i> Final</span><br>
+                                        {% else %}
+                                            <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}#video_final" class="btn btn-sm btn-outline-primary mb-1">
+                                                <i class="fas fa-video"></i> Final
+                                            </a><br>
+                                        {% endif %}
+
+                                        <!-- Video Demora (opcional) -->
+                                        {% if orden.video_demora %}
+                                            <span class="badge bg-info mb-1"><i class="fas fa-check"></i> Demora</span>
+                                        {% else %}
+                                            <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}#video_demora" class="btn btn-sm btn-outline-secondary mb-1">
+                                                <i class="fas fa-video"></i> Demora (opcional)
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <!-- Botón Finalizar Orden - SOLO si tiene los 3 obligatorios -->
+                                    {% if orden.video_inicial and orden.video_falla and orden.video_final %}
+                                        <form action="{{ url_for('finalizar_orden', orden_id=orden.id) }}" method="POST" style="display:inline;">
+                                            <button type="submit" class="btn btn-success btn-sm" 
+                                                    onclick="return confirm('¿Confirmas que la orden está completada y lista para revisión?')">
+                                                <i class="fas fa-check-circle"></i> Finalizar
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-muted small">Finalizar disponible con los 3 videos</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <a href="{{ url_for('registrar_pasajes', orden_id=orden.id) }}" 
@@ -140,7 +190,7 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="9" class="text-center py-5 text-muted">
+                                <td colspan="10" class="text-center py-5 text-muted">
                                     <i class="fas fa-check-circle fa-3x mb-3 text-success"></i><br>
                                     <h5>¡Todo al día!</h5>
                                     <p>No tienes órdenes pendientes por ahora</p>

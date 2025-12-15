@@ -190,8 +190,6 @@ def debug_users():
     result += "</ul><p><a href='/'>Volver al login</a></p>"
     return result
 
-# ====================== RUN ======================
-# ====================== RUTAS QUE FALTABAN ======================
 # ====================== CREAR ORDEN (CON BUSCADOR PRO DE CLIENTES) ======================
 @app.route('/crear_orden', methods=['GET', 'POST'])
 @login_required
@@ -289,7 +287,7 @@ def listar_clientes():
     clientes = Cliente.query.order_by(Cliente.nombre).all()
     return render_template('listar_clientes.html', clientes=clientes)
 
-# ====================== RUTA ACTUALIZAR ORDEN - ELIMINA EL 500 DEL TÉCNICO ======================
+# ====================== RUTA ACTUALIZAR ORDEN ======================
 @app.route('/actualizar_orden/<int:orden_id>', methods=['GET', 'POST'])
 @login_required
 def actualizar_orden(orden_id):
@@ -335,7 +333,7 @@ def actualizar_orden(orden_id):
                    clip.write_videofile(compressed_path, codec='libx264', bitrate='1000k')
                    clip.close()
 
-                   setattr(orden, campo, f"/videos/{filename}")  # Usar nueva ruta protegida
+                   setattr(orden, campo, f"/videos/{filename}")
                    print(f"Video guardado y comprimido: {campo} → {filename}")
 
            db.session.commit()
@@ -354,7 +352,7 @@ def actualizar_orden(orden_id):
 def serve_video(filename):
     return send_from_directory(os.path.join(app.root_path, 'static/videos'), filename)
 
-# ====================== REGISTRAR PASAJES (FUNCIONA CON TU TEMPLATE ORIGINAL) ======================
+# ====================== REGISTRAR PASAJES ======================
 @app.route('/registrar_pasajes/<int:orden_id>', methods=['GET', 'POST'])
 @login_required
 def registrar_pasajes(orden_id):
@@ -367,7 +365,6 @@ def registrar_pasajes(orden_id):
         flash('Esta orden no te pertenece', 'danger')
         return redirect(url_for('dashboard'))
 
-    # Cargar anticipos del técnico para el select
     anticipos = Anticipo.query.filter_by(tecnico_id=current_user.id).all()
 
     if request.method == 'POST':
@@ -396,8 +393,7 @@ def registrar_pasajes(orden_id):
 
     return render_template('registrar_pasajes.html', orden=orden, anticipos=anticipos)
 
-# ====================== RUN ======================
-# ====================== GESTIÓN DE CLIENTES (CON MEDIO DE CONTACTO) ======================
+# ====================== GESTIÓN DE CLIENTES ======================
 @app.route('/clientes', methods=['GET', 'POST'])
 @login_required
 def clientes():
@@ -411,9 +407,8 @@ def clientes():
             telefono = request.form.get('telefono', '').strip()
             direccion = request.form.get('direccion', '').strip()
             distrito = request.form.get('distrito', '').strip()
-            medio_contacto = request.form['medio_contacto']  # ← NUEVO CAMPO
+            medio_contacto = request.form['medio_contacto']
 
-            # Evitar duplicados
             existe = Cliente.query.filter_by(nombre=nombre).first()
             if existe:
                 flash('Este cliente ya existe', 'warning')
@@ -423,7 +418,7 @@ def clientes():
                     telefono=telefono,
                     direccion=direccion,
                     distrito=distrito,
-                    medio_contacto=medio_contacto  # ← GUARDADO
+                    medio_contacto=medio_contacto
                 )
                 db.session.add(nuevo)
                 db.session.commit()
@@ -460,9 +455,7 @@ def buscar_clientes():
     
     return jsonify(resultados)
 
-# =============================================
 # CREAR CLIENTE DESDE ORDEN Y VOLVER
-# =============================================
 @app.route('/crear_cliente_desde_orden', methods=['POST'])
 @login_required
 def crear_cliente_desde_orden():
@@ -477,7 +470,6 @@ def crear_cliente_desde_orden():
         distrito = request.form.get('distrito', '').strip()
         medio_contacto = request.form['medio_contacto']
 
-        # Evitar duplicados
         existe = Cliente.query.filter_by(nombre=nombre).first()
         if existe:
             flash(f'El cliente "{nombre}" ya existe', 'warning')
@@ -494,7 +486,6 @@ def crear_cliente_desde_orden():
         db.session.commit()
 
         flash(f'Cliente {nombre} creado con éxito', 'success')
-        # ← VUELVE A CREAR ORDEN CON EL CLIENTE NUEVO SELECCIONADO
         return redirect(url_for('crear_orden', cliente_nuevo_id=nuevo.id))
 
     except Exception as e:
@@ -511,7 +502,6 @@ def check_orden(orden_id):
 
     orden = Orden.query.get_or_404(orden_id)
 
-    # ENVIAR WHATSAPP AL CLIENTE
     if orden.cliente.telefono:
         enviar_whatsapp(orden.cliente.telefono, 'orden_completada_cliente', params=[
             orden.cliente.nombre.split()[0],
@@ -530,13 +520,38 @@ def check_orden(orden_id):
 def ver_orden(orden_id):
     orden = Orden.query.get_or_404(orden_id)
     
-    # Coordinador y técnico pueden ver
     if current_user.role not in ['coordinador', 'tecnico'] or \
        (current_user.role == 'tecnico' and orden.tecnico_id != current_user.id):
         flash('Acceso restringido', 'danger')
         return redirect(url_for('dashboard'))
     
-    return render_template('ver_orden.html', orden=orden)    
+    return render_template('ver_orden.html', orden=orden)
 
+# ====================== NUEVA RUTA: FINALIZAR ORDEN ======================
+@app.route('/finalizar_orden/<int:orden_id>', methods=['POST'])
+@login_required
+def finalizar_orden(orden_id):
+    if current_user.role != 'tecnico':
+        flash('Solo técnicos pueden finalizar órdenes', 'danger')
+        return redirect(url_for('dashboard'))
+
+    orden = Orden.query.get_or_404(orden_id)
+    if orden.tecnico_id != current_user.id:
+        flash('Esta orden no te pertenece', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Validación de videos obligatorios
+    if not orden.video_inicial or not orden.video_falla or not orden.video_final:
+        flash('No puedes finalizar la orden: faltan videos obligatorios (Inicial, Falla o Final)', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Cambiar estado (ajusta 'completada' si usas otro valor)
+    orden.estado = 'completada'
+    db.session.commit()
+
+    flash(f'Orden #{orden.id} finalizada con éxito. Listo para revisión del coordinador.', 'success')
+    return redirect(url_for('dashboard'))
+
+# ====================== RUN ======================
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=True)
