@@ -84,7 +84,7 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <!-- Tu navbar y todo lo demás igual -->
+    <!-- NAVBAR CON ENLACE ADMIN -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm fixed-top">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('dashboard') }}">
@@ -94,7 +94,7 @@
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="#navbarNav">
+            <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item me-3">
@@ -104,6 +104,16 @@
                                 <small class="badge bg-light text-dark">{{ current_user.role|title }}</small>
                             </span>
                         </li>
+
+                        <!-- NUEVO: ENLACE GESTIÓN USUARIOS SOLO PARA ADMIN -->
+                        {% if current_user.role == 'admin' %}
+                        <li class="nav-item me-2">
+                            <a href="{{ url_for('admin_usuarios') }}" class="btn btn-warning btn-sm">
+                                <i class="bi bi-people-fill"></i> Gestión Usuarios
+                            </a>
+                        </li>
+                        {% endif %}
+
                         <li class="nav-item">
                             <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
                                 Cerrar sesión
