@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Editar Usuario{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Editar Usuario - {{ user.nombre_completo() }}</h2>
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control bg-light" value="{{ user.email }}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nombre</label>
+                    <input type="text" name="nombre" class="form-control" value="{{ user.nombre }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Apellido</label>
+                    <input type="text" name="apellido" class="form-control" value="{{ user.apellido }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Role</label>
+                    <select name="role" class="form-select">
+                        <option value="tecnico" {{ 'selected' if user.role == 'tecnico' }}>Técnico</option>
+                        <option value="coordinador" {{ 'selected' if user.role == 'coordinador' }}>Coordinador</option>
+                        <option value="contadora" {{ 'selected' if user.role == 'contadora' }}>Contadora</option>
+                        <option value="admin" {{ 'selected' if user.role == 'admin' }}>Admin</option>
+                    </select>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" name="activo" class="form-check-input" id="activo" {{ 'checked' if user.activo }}>
+                    <label class="form-check-label" for="activo">Usuario activo</label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nueva contraseña (dejar vacío para mantener)</label>
+                    <input type="password" name="password" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                <a href="{{ url_for('admin_usuarios') }}" class="btn btn-secondary ms-2">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

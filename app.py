@@ -28,28 +28,45 @@ def load_user(user_id):
 # ====================== CREAR DB + USUARIOS ======================
 with app.app_context():
     db.create_all()
+    print("BD creada o existente")
 
-    # Admin (siempre queda)
-    if not User.query.filter_by(email='admin@novafrost.com').first():
-        admin = User(email='admin@novafrost.com', nombre='Admin', apellido='NovaFrost',
-                     role='admin', activo=True)
-        admin.set_password('admin123')
-        db.session.add(admin)
+    try:
+        # Admin principal
+        if not User.query.filter_by(email='admin@novafrostperu.com').first():
+            print("Creando admin@novafrostperu.com")
+            admin = User(
+                email='admin@novafrostperu.com',
+                nombre='Admin',
+                apellido='NovaFrost',
+                role='admin',
+                activo=True
+            )
+            admin.set_password('admin123')
+            db.session.add(admin)
+            db.session.commit()
+            print("Admin creado con éxito")
+        else:
+            print("Admin ya existe")
+
+        # Usuarios de prueba
+        print("Intentando crear usuarios de prueba...")
+        usuarios_prueba = [
+            ('coordinador@novafrostperu.com', 'Carlos', 'Ramírez', 'coordinador', 'pass123'),
+            ('juan.perez@novafrostperu.com', 'Juan', 'Pérez', 'tecnico', 'pass123'),
+            ('maria.gomez@novafrostperu.com', 'María', 'Gómez', 'tecnico', 'pass123'),
+            ('contadora@novafrostperu.com', 'Ana', 'López', 'contadora', 'pass123')
+        ]
+        for email, nombre, apellido, rol, password in usuarios_prueba:
+            if not User.query.filter_by(email=email).first():
+                print(f"Creando {email}")
+                u = User(email=email, nombre=nombre, apellido=apellido, role=rol, activo=True)
+                u.set_password(password)
+                db.session.add(u)
         db.session.commit()
-
-    # Usuarios de prueba (siempre en minúsculas)
-    usuarios_prueba = [
-        ('coordinador@novafrost.com', 'Carlos', 'Ramírez', 'coordinador', 'pass123'),
-        ('juan.perez@novafrost.com', 'Juan', 'Pérez', 'tecnico', 'pass123'),
-        ('maria.gomez@novafrost.com', 'María', 'Gómez', 'tecnico', 'pass123'),
-        ('contadora@novafrost.com', 'Ana', 'López', 'contadora', 'pass123')
-    ]
-    for email, nombre, apellido, rol, password in usuarios_prueba:
-        if not User.query.filter_by(email=email).first():
-            u = User(email=email, nombre=nombre, apellido=apellido, role=rol, activo=True)
-            u.set_password(password)
-            db.session.add(u)
-    db.session.commit()
+        print("Todos los usuarios de prueba creados o ya existentes")
+    except Exception as e:
+        print(f"ERROR al crear usuarios: {str(e)}")
+        db.session.rollback()
 
 # ====================== RUTAS ======================
 @app.route('/')
@@ -81,7 +98,6 @@ def logout():
 @login_required
 def dashboard():
     if current_user.role == 'tecnico':
-        # FIX DEFINITIVO: nunca más 500 - carga el cliente y ordena por fecha
         from sqlalchemy.orm import joinedload
         ordenes = (Orden.query
                    .options(joinedload(Orden.cliente))
@@ -118,46 +134,90 @@ def dashboard():
                                tecnicos=tecnicos)
 
     elif current_user.role == 'admin':
-        return redirect(url_for('admin_tecnicos'))
+        return redirect(url_for('admin_usuarios'))  # Cambiado a panel completo de usuarios
 
     elif current_user.role == 'contadora':
         return render_template('dashboard_contadora.html')
 
     return render_template('dashboard.html')
 
-# ====================== ADMIN TÉCNICOS ======================
-@app.route('/admin/tecnicos')
+# ====================== ADMIN USUARIOS (PANEL COMPLETO) ======================
+@app.route('/admin/usuarios')
 @login_required
-def admin_tecnicos():
+def admin_usuarios():
     if current_user.role != 'admin':
-        flash('Acceso restringido', 'danger')
+        flash('Acceso restringido: solo administradores', 'danger')
         return redirect(url_for('dashboard'))
-    tecnicos = User.query.filter_by(role='tecnico').order_by(User.fecha_registro.desc()).all()
-    return render_template('admin/tecnicos.html', tecnicos=tecnicos)
+    usuarios = User.query.order_by(User.role, User.apellido).all()
+    return render_template('admin/usuarios.html', usuarios=usuarios)
 
-@app.route('/admin/tecnicos/nuevo', methods=['GET', 'POST'])
+@app.route('/admin/usuarios/nuevo', methods=['GET', 'POST'])
 @login_required
-def nuevo_tecnico():
+def nuevo_usuario():
     if current_user.role != 'admin':
         flash('Solo administradores', 'danger')
         return redirect(url_for('dashboard'))
-
+    
     if request.method == 'POST':
         email = request.form['email'].strip().lower()
         if User.query.filter_by(email=email).first():
             flash('Email ya registrado', 'danger')
         else:
-            nuevo = User(email=email,
-                         nombre=request.form['nombre'].strip(),
-                         apellido=request.form['apellido'].strip(),
-                         role='tecnico',
-                         activo=True)
+            nuevo = User(
+                email=email,
+                nombre=request.form['nombre'].strip(),
+                apellido=request.form['apellido'].strip(),
+                role=request.form['role'],
+                activo=True
+            )
             nuevo.set_password(request.form['password'])
             db.session.add(nuevo)
             db.session.commit()
-            flash('Técnico creado con éxito', 'success')
-            return redirect(url_for('admin_tecnicos'))
-    return render_template('admin/nuevo_tecnico.html')
+            flash(f'Usuario {email} creado con éxito', 'success')
+            return redirect(url_for('admin_usuarios'))
+    
+    return render_template('admin/nuevo_usuario.html')
+
+@app.route('/admin/usuarios/editar/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def editar_usuario(user_id):
+    if current_user.role != 'admin':
+        flash('Solo administradores', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    
+    if request.method == 'POST':
+        user.nombre = request.form['nombre'].strip()
+        user.apellido = request.form['apellido'].strip()
+        user.role = request.form['role']
+        user.activo = 'activo' in request.form
+        
+        if request.form['password']:
+            user.set_password(request.form['password'])
+        
+        db.session.commit()
+        flash('Usuario actualizado correctamente', 'success')
+        return redirect(url_for('admin_usuarios'))
+    
+    return render_template('admin/editar_usuario.html', user=user)
+
+@app.route('/admin/usuarios/desactivar/<int:user_id>', methods=['POST'])
+@login_required
+def desactivar_usuario(user_id):
+    if current_user.role != 'admin':
+        flash('Solo administradores', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    if user.role == 'admin' and user.id != current_user.id:
+        flash('No puedes desactivar otros admins', 'danger')
+    else:
+        user.activo = False
+        db.session.commit()
+        flash(f'Usuario {user.email} desactivado', 'warning')
+    
+    return redirect(url_for('admin_usuarios'))
 
 # ====================== GPS ======================
 tecnicos_gps = {}
@@ -189,6 +249,10 @@ def debug_users():
         result += f"<li>ID: {u.id} | Email: <strong>{u.email}</strong> | Nombre: {u.nombre_completo()} | Role: {u.role}</li>"
     result += "</ul><p><a href='/'>Volver al login</a></p>"
     return result
+
+# ====================== RUTAS RESTANTES (crear_orden, actualizar_orden, etc.) ======================
+# (Aquí va el resto de tu código que ya tienes: crear_orden, actualizar_orden, serve_video, registrar_pasajes, clientes, etc.)
+# No lo repito para no hacer el mensaje eterno, pero déjalo tal cual está.
 
 # ====================== CREAR ORDEN (CON BUSCADOR PRO DE CLIENTES) ======================
 @app.route('/crear_orden', methods=['GET', 'POST'])
@@ -330,7 +394,7 @@ def actualizar_orden(orden_id):
                    # Compresión automática
                    clip = VideoFileClip(filepath)
                    compressed_path = filepath  # Sobrescribir el original
-                   clip.write_videofile(compressed_path, codec='libx264', bitrate='1000k')
+                   clip.write_videofile(compressed_path, codec='libx264', bitrate='1000k', ffmpeg_params=["-movflags", "+faststart"])
                    clip.close()
 
                    setattr(orden, campo, f"/videos/{filename}")
@@ -551,6 +615,14 @@ def finalizar_orden(orden_id):
 
     flash(f'Orden #{orden.id} finalizada con éxito. Listo para revisión del coordinador.', 'success')
     return redirect(url_for('dashboard'))
+
+@app.route('/sw.js')
+def serve_sw():
+    return send_from_directory('static', 'sw.js')
+
+@app.route('/firebase-messaging-sw.js')
+def serve_firebase_sw():
+    return send_from_directory('static', 'firebase-messaging-sw.js')
 
 # ====================== RUN ======================
 if __name__ == '__main__':

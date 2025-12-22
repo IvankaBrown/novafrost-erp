@@ -40,14 +40,14 @@
     <!-- Firebase + Push -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
-    <script src="/static/firebase-init.js"></script>
-    <script src="/static/push.js"></script>
+<script src="/static/firebase-init.js"></script>
+<script type="module" src="/static/push.js"></script>
 
     <!-- SERVICE WORKER (registrado correctamente) -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/static/sw.js', { scope: '/' })
+navigator.serviceWorker.register('/sw.js', { scope: '/' })
                     .then(reg => console.log('SW registrado →', reg.scope))
                     .catch(err => console.error('Error SW:', err));
             });
