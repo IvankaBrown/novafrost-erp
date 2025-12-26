@@ -1,21 +1,23 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, current_app, send_from_directory
-from moviepy.editor import VideoFileClip
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import db
 from models import User, Orden, Cliente, Anticipo, Pasaje
 from datetime import datetime, timezone
 import os
+import json
+import uuid
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 
 app = Flask(__name__)
 
 # PostgreSQL persistente desde Render (Free plan)
 DATABASE_URL = os.getenv('DATABASE_URL')
 if DATABASE_URL:
-    # Render usa 'postgres://' pero SQLAlchemy prefiere 'postgresql://'
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL.replace('postgres://', 'postgresql://')
 else:
-    # Fallback local (para pruebas en tu PC)
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///novafrost_erp.db'
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'nova_frost_2025_super_secreto_ultra_seguro_1234567890!@#')
@@ -76,6 +78,31 @@ with app.app_context():
     except Exception as e:
         print(f"ERROR al crear usuarios: {str(e)}")
         db.session.rollback()
+
+# ====================== FUNCIÓN PARA SUBIR VIDEOS A DRIVE ======================
+def subir_video_a_drive(filepath, filename, carpeta_id):
+    creds_json = os.getenv('GOOGLE_DRIVE_CREDENTIALS')
+    if not creds_json:
+        raise Exception("Credenciales Google Drive no configuradas")
+    
+    creds_info = json.loads(creds_json)
+    creds = Credentials.from_service_account_info(creds_info, scopes=['https://www.googleapis.com/auth/drive.file'])
+    service = build('drive', 'v3', credentials=creds)
+
+    file_metadata = {
+        'name': filename,
+        'parents': [carpeta_id]
+    }
+    media = MediaFileUpload(filepath, mimetype='video/mp4', resumable=True)
+    file = service.files().create(body=file_metadata, media_body=media, fields='id, webViewLink').execute()
+    
+    # Hacer público para reproducción directa
+    service.permissions().create(
+        fileId=file['id'],
+        body={'type': 'anyone', 'role': 'reader'}
+    ).execute()
+    
+    return file['webViewLink']
 
 # ====================== RUTAS ======================
 @app.route('/')
@@ -143,7 +170,7 @@ def dashboard():
                                tecnicos=tecnicos)
 
     elif current_user.role == 'admin':
-        return redirect(url_for('admin_usuarios'))  # Cambiado a panel completo de usuarios
+        return redirect(url_for('admin_usuarios'))
 
     elif current_user.role == 'contadora':
         return render_template('dashboard_contadora.html')
@@ -259,108 +286,7 @@ def debug_users():
     result += "</ul><p><a href='/'>Volver al login</a></p>"
     return result
 
-# ====================== RUTAS RESTANTES (crear_orden, actualizar_orden, etc.) ======================
-# (Aquí va el resto de tu código que ya tienes: crear_orden, actualizar_orden, serve_video, registrar_pasajes, clientes, etc.)
-# No lo repito para no hacer el mensaje eterno, pero déjalo tal cual está.
-
-# ====================== CREAR ORDEN (CON BUSCADOR PRO DE CLIENTES) ======================
-@app.route('/crear_orden', methods=['GET', 'POST'])
-@login_required
-def crear_orden():
-    if current_user.role != 'coordinador':
-        flash('Acceso restringido', 'danger')
-        return redirect(url_for('dashboard'))
-
-    tecnicos = User.query.filter_by(role='tecnico', activo=True).all()
-
-    if request.method == 'POST':
-        try:
-            # Cliente por ID (buscador PRO)
-            cliente_id = request.form.get('cliente_id')
-            if not cliente_id or not cliente_id.isdigit():
-                flash('Debe seleccionar un cliente de la lista', 'danger')
-                return redirect(url_for('crear_orden'))
-            cliente = Cliente.query.get_or_404(int(cliente_id))
-
-            # Campos básicos
-            falla = request.form['falla'].strip()
-            tecnico_id = request.form['tecnico_id']
-            tipo_aparato = request.form['tipo_aparato']
-            total = float(request.form['total'])
-            urgente = 'urgente' in request.form
-
-            # NUEVOS CAMPOS OBLIGATORIOS
-            fecha_hora_str = request.form['fecha_hora_atencion']
-            medio_pago = request.form['medio_pago']
-            tipo_comprobante = request.form['tipo_comprobante']
-
-            # Crear orden con todos los datos
-            orden = Orden(
-                cliente_id=cliente.id,
-                tecnico_id=tecnico_id,
-                falla=falla,
-                tipo_aparato=tipo_aparato,
-                total=total,
-                estado='urgente' if urgente else 'pendiente',
-                fecha=datetime.utcnow(),
-                fecha_hora_atencion=datetime.fromisoformat(fecha_hora_str),
-                medio_pago=medio_pago,
-                tipo_comprobante=tipo_comprobante
-            )
-            db.session.add(orden)
-            db.session.commit()
-
-            # === WHATSAPP AUTOMÁTICO ===
-            tecnico = User.query.get(tecnico_id)
-
-            # Al técnico
-            if tecnico.numero_whatsapp:
-                enviar_whatsapp(
-                    to=tecnico.numero_whatsapp,
-                    template_name="nueva_orden_tecnico",
-                    params=[
-                        {"type": "text", "text": tecnico.nombre_completo()},
-                        {"type": "text", "text": str(orden.id)},
-                        {"type": "text", "text": cliente.nombre},
-                        {"type": "text", "text": falla},
-                        {"type": "text", "text": fecha_hora_str.replace("T", " a las ")}
-                    ]
-                )
-
-            # Al cliente
-            if cliente.telefono:
-                enviar_whatsapp(
-                    to="51" + cliente.telefono.replace(" ", ""),
-                    template_name="orden_creada_cliente",
-                    params=[
-                        {"type": "text", "text": cliente.nombre.split()[0]},
-                        {"type": "text", "text": str(orden.id)},
-                        {"type": "text", "text": fecha_hora_str.replace("T", " a las ")},
-                        {"type": "text", "text": tecnico.nombre_completo()},
-                        {"type": "text", "text": f"S/. {total}"},
-                        {"type": "text", "text": medio_pago.upper()},
-                        {"type": "text", "text": tipo_comprobante.upper()}
-                    ]
-                )
-
-            flash(f'Orden #{orden.id} creada y notificaciones enviadas', 'success')
-            return redirect(url_for('dashboard'))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error al crear la orden: {str(e)}', 'danger')
-            return redirect(url_for('crear_orden'))
-
-    return render_template('crear_orden.html', tecnicos=tecnicos)
-
-# ====================== LISTAR CLIENTES (opcional) ======================
-@app.route('/listar_clientes')
-@login_required
-def listar_clientes():
-    clientes = Cliente.query.order_by(Cliente.nombre).all()
-    return render_template('listar_clientes.html', clientes=clientes)
-
-# ====================== RUTA ACTUALIZAR ORDEN ======================
+# ====================== RUTA ACTUALIZAR ORDEN (SUBIDA A DRIVE) ======================
 @app.route('/actualizar_orden/<int:orden_id>', methods=['GET', 'POST'])
 @login_required
 def actualizar_orden(orden_id):
@@ -379,38 +305,32 @@ def actualizar_orden(orden_id):
            orden.falla_encontrada = request.form['falla_encontrada'].strip()
            orden.justificacion_demora = request.form.get('justificacion_demora', '').strip()
 
-           # GUARDAR VIDEOS
-           upload_folder = os.path.join(current_app.root_path, 'static', 'videos')
-           os.makedirs(upload_folder, exist_ok=True)
+           # ID de tu carpeta en Drive
+           CARPETA_DRIVE_ID = '1z6T3mkRMTRLPspiMlVs4Ik91dMag8CQR'
 
            for campo in ['video_inicial', 'video_falla', 'video_final', 'video_demora']:
                file = request.files.get(campo)
                if file and file.filename:
-                   # Limitar tamaño máximo (10MB)
-                   file.seek(0, os.SEEK_END)
-                   file_size = file.tell()
-                   file.seek(0)
-                   if file_size > 10 * 1024 * 1024:
-                       flash(f'Video {campo} demasiado grande (máximo 10MB)', 'danger')
-                       continue
-
+                   # Guardar temporalmente
                    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'mp4'
-                   timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-                   filename = f"orden_{orden.id}_{campo}_{timestamp}.{ext}"
-                   filepath = os.path.join(upload_folder, filename)
-                   file.save(filepath)
+                   temp_filename = f"temp_{uuid.uuid4().hex}.{ext}"
+                   temp_filepath = os.path.join('/tmp', temp_filename)
+                   file.save(temp_filepath)
 
-                   # Compresión automática
-                   clip = VideoFileClip(filepath)
-                   compressed_path = filepath  # Sobrescribir el original
-                   clip.write_videofile(compressed_path, codec='libx264', bitrate='1000k', ffmpeg_params=["-movflags", "+faststart"])
-                   clip.close()
+                   # Subir a Drive
+                   try:
+                       drive_link = subir_video_a_drive(temp_filepath, file.filename, CARPETA_DRIVE_ID)
+                       setattr(orden, campo, drive_link)
+                       print(f"Video subido a Drive: {campo} → {drive_link}")
+                   except Exception as e:
+                       flash(f'Error subiendo {campo} a Drive: {str(e)}', 'danger')
 
-                   setattr(orden, campo, f"/videos/{filename}")
-                   print(f"Video guardado y comprimido: {campo} → {filename}")
+                   # Borrar temporal
+                   if os.path.exists(temp_filepath):
+                       os.remove(temp_filepath)
 
            db.session.commit()
-           flash('¡Orden actualizada y videos guardados con éxito!', 'success')
+           flash('¡Orden actualizada y videos guardados en Drive con éxito!', 'success')
            return redirect(url_for('dashboard'))
 
        except Exception as e:
@@ -419,7 +339,7 @@ def actualizar_orden(orden_id):
 
     return render_template('actualizar_orden.html', orden=orden)
 
-# Nueva ruta protegida para servir videos
+# Ruta vieja para videos locales (la dejamos por si hay videos antiguos)
 @app.route('/videos/<filename>')
 @login_required
 def serve_video(filename):
@@ -462,7 +382,7 @@ def registrar_pasajes(orden_id):
             db.session.rollback()
             flash('Error al registrar el pasaje', 'danger')
 
-        return redirect(url_for('registrar_pasajes', orden_id=orden.id))
+        return redirect(url_for('registrar_pasajes', orden_id=orden_id))
 
     return render_template('registrar_pasajes.html', orden=orden, anticipos=anticipos)
 
