@@ -286,6 +286,70 @@ def debug_users():
     result += "</ul><p><a href='/'>Volver al login</a></p>"
     return result
 
+# ====================== CREAR ORDEN (CON BUSCADOR PRO DE CLIENTES) ======================
+@app.route('/crear_orden', methods=['GET', 'POST'])
+@login_required
+def crear_orden():
+    if current_user.role != 'coordinador':
+        flash('Acceso restringido', 'danger')
+        return redirect(url_for('dashboard'))
+
+    tecnicos = User.query.filter_by(role='tecnico', activo=True).all()
+
+    if request.method == 'POST':
+        try:
+            # Cliente por ID (buscador PRO)
+            cliente_id = request.form.get('cliente_id')
+            if not cliente_id or not cliente_id.isdigit():
+                flash('Debe seleccionar un cliente de la lista', 'danger')
+                return redirect(url_for('crear_orden'))
+            cliente = Cliente.query.get_or_404(int(cliente_id))
+
+            # Campos básicos
+            falla = request.form['falla'].strip()
+            tecnico_id = request.form['tecnico_id']
+            tipo_aparato = request.form['tipo_aparato']
+            total = float(request.form['total'])
+            urgente = 'urgente' in request.form
+
+            # NUEVOS CAMPOS OBLIGATORIOS
+            fecha_hora_str = request.form['fecha_hora_atencion']
+            medio_pago = request.form['medio_pago']
+            tipo_comprobante = request.form['tipo_comprobante']
+
+            # Crear orden con todos los datos
+            orden = Orden(
+                cliente_id=cliente.id,
+                tecnico_id=tecnico_id,
+                falla=falla,
+                tipo_aparato=tipo_aparato,
+                total=total,
+                estado='urgente' if urgente else 'pendiente',
+                fecha=datetime.utcnow(),
+                fecha_hora_atencion=datetime.fromisoformat(fecha_hora_str),
+                medio_pago=medio_pago,
+                tipo_comprobante=tipo_comprobante
+            )
+            db.session.add(orden)
+            db.session.commit()
+
+            flash(f'Orden #{orden.id} creada con éxito', 'success')
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al crear la orden: {str(e)}', 'danger')
+            return redirect(url_for('crear_orden'))
+
+    return render_template('crear_orden.html', tecnicos=tecnicos)
+
+# ====================== LISTAR CLIENTES (opcional) ======================
+@app.route('/listar_clientes')
+@login_required
+def listar_clientes():
+    clientes = Cliente.query.order_by(Cliente.nombre).all()
+    return render_template('listar_clientes.html', clientes=clientes)
+
 # ====================== RUTA ACTUALIZAR ORDEN (SUBIDA A DRIVE) ======================
 @app.route('/actualizar_orden/<int:orden_id>', methods=['GET', 'POST'])
 @login_required
@@ -339,7 +403,7 @@ def actualizar_orden(orden_id):
 
     return render_template('actualizar_orden.html', orden=orden)
 
-# Ruta vieja para videos locales (la dejamos por si hay videos antiguos)
+# Ruta vieja para videos locales (la dejamos por compatibilidad con videos antiguos)
 @app.route('/videos/<filename>')
 @login_required
 def serve_video(filename):
