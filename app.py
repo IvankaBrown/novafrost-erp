@@ -8,8 +8,17 @@ from datetime import datetime, timezone
 import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///novafrost_erp.db'
-app.config['SECRET_KEY'] = 'nova_frost_2025_super_secreto_ultra_seguro_1234567890!@#'
+
+# PostgreSQL persistente desde Render (Free plan)
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    # Render usa 'postgres://' pero SQLAlchemy prefiere 'postgresql://'
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL.replace('postgres://', 'postgresql://')
+else:
+    # Fallback local (para pruebas en tu PC)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///novafrost_erp.db'
+
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'nova_frost_2025_super_secreto_ultra_seguro_1234567890!@#')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # "now" como datetime real (funciona con .strftime en templates)
