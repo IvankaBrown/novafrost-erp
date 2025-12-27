@@ -350,7 +350,7 @@ def listar_clientes():
     clientes = Cliente.query.order_by(Cliente.nombre).all()
     return render_template('listar_clientes.html', clientes=clientes)
 
-# ====================== RUTA ACTUALIZAR ORDEN (SUBIDA A DRIVE) ======================
+# ====================== RUTA ACTUALIZAR ORDEN (SUBIDA A DRIVE CORREGIDA) ======================
 @app.route('/actualizar_orden/<int:orden_id>', methods=['GET', 'POST'])
 @login_required
 def actualizar_orden(orden_id):
@@ -365,12 +365,15 @@ def actualizar_orden(orden_id):
 
     if request.method == 'POST':
        try:
-           # NO TOCAMOS orden.falla (queda la original del cliente)
+           # Guardar diagnóstico y justificación
            orden.falla_encontrada = request.form['falla_encontrada'].strip()
            orden.justificacion_demora = request.form.get('justificacion_demora', '').strip()
 
            # ID de tu carpeta en Drive
            CARPETA_DRIVE_ID = '1z6T3mkRMTRLPspiMlVs4Ik91dMag8CQR'
+
+           videos_subidos = 0
+           errores = []
 
            for campo in ['video_inicial', 'video_falla', 'video_final', 'video_demora']:
                file = request.files.get(campo)
@@ -385,21 +388,35 @@ def actualizar_orden(orden_id):
                    try:
                        drive_link = subir_video_a_drive(temp_filepath, file.filename, CARPETA_DRIVE_ID)
                        setattr(orden, campo, drive_link)
-                       print(f"Video subido a Drive: {campo} → {drive_link}")
+                       videos_subidos += 1
+                       print(f"ÉXITO: Video {campo} subido → {drive_link}")
                    except Exception as e:
-                       flash(f'Error subiendo {campo} a Drive: {str(e)}', 'danger')
+                       error_msg = str(e)
+                       errores.append(f"{campo}: {error_msg}")
+                       print(f"ERROR subiendo {campo}: {error_msg}")
 
                    # Borrar temporal
                    if os.path.exists(temp_filepath):
                        os.remove(temp_filepath)
 
+           # Commit
            db.session.commit()
-           flash('¡Orden actualizada y videos guardados en Drive con éxito!', 'success')
+
+           # Mensajes reales
+           if videos_subidos > 0:
+               flash(f'{videos_subidos} video(s) subido(s) a Drive con éxito', 'success')
+           if errores:
+               for err in errores:
+                   flash(f'Error subiendo video: {err}', 'danger')
+           if videos_subidos == 0 and not errores:
+               flash('No se subieron videos nuevos', 'info')
+
            return redirect(url_for('dashboard'))
 
        except Exception as e:
            db.session.rollback()
-           flash(f'Error al guardar: {str(e)}', 'danger')
+           flash(f'Error general al guardar: {str(e)}', 'danger')
+           print(f"ERROR GENERAL: {str(e)}")
 
     return render_template('actualizar_orden.html', orden=orden)
 
