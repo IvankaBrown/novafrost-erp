@@ -50,14 +50,15 @@
                             {% if orden.video_inicial %}
                                 <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
                                     <video controls class="w-100" preload="metadata">
-                                        <source src="{{ orden.video_inicial }}" type="video/mp4">
+                                        <source src="{{ orden.video_inicial }}#t=0.1" type="video/mp4">
                                         Tu navegador no soporta video.
                                     </video>
                                 </div>
                                 <div class="text-success fw-bold text-center">
-                                    <i class="fas fa-check-circle"></i> Ya subido
+                                    <i class="fas fa-check-circle"></i> Subido a Drive
                                 </div>
                             {% else %}
+                                <p class="text-muted small">No subido aún</p>
                                 <input type="file" name="video_inicial" id="video_inicial" accept="video/*" capture="environment" class="form-control">
                             {% endif %}
                         </div>
@@ -68,14 +69,15 @@
                             {% if orden.video_falla %}
                                 <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
                                     <video controls class="w-100" preload="metadata">
-                                        <source src="{{ orden.video_falla }}" type="video/mp4">
+                                        <source src="{{ orden.video_falla }}#t=0.1" type="video/mp4">
                                         Tu navegador no soporta video.
                                     </video>
                                 </div>
                                 <div class="text-success fw-bold text-center">
-                                    <i class="fas fa-check-circle"></i> Ya subido
+                                    <i class="fas fa-check-circle"></i> Subido a Drive
                                 </div>
                             {% else %}
+                                <p class="text-muted small">No subido aún</p>
                                 <input type="file" name="video_falla" id="video_falla" accept="video/*" capture="environment" class="form-control">
                             {% endif %}
                         </div>
@@ -86,14 +88,15 @@
                             {% if orden.video_final %}
                                 <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
                                     <video controls class="w-100" preload="metadata">
-                                        <source src="{{ orden.video_final }}" type="video/mp4">
+                                        <source src="{{ orden.video_final }}#t=0.1" type="video/mp4">
                                         Tu navegador no soporta video.
                                     </video>
                                 </div>
                                 <div class="text-success fw-bold text-center">
-                                    <i class="fas fa-check-circle"></i> Ya subido
+                                    <i class="fas fa-check-circle"></i> Subido a Drive
                                 </div>
                             {% else %}
+                                <p class="text-muted small">No subido aún</p>
                                 <input type="file" name="video_final" id="video_final" accept="video/*" capture="environment" class="form-control">
                             {% endif %}
                         </div>
@@ -104,14 +107,15 @@
                             {% if orden.video_demora %}
                                 <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
                                     <video controls class="w-100" preload="metadata">
-                                        <source src="{{ orden.video_demora }}" type="video/mp4">
+                                        <source src="{{ orden.video_demora }}#t=0.1" type="video/mp4">
                                         Tu navegador no soporta video.
                                     </video>
                                 </div>
                                 <div class="text-success fw-bold text-center">
-                                    <i class="fas fa-check-circle"></i> Ya subido
+                                    <i class="fas fa-check-circle"></i> Subido a Drive
                                 </div>
                             {% else %}
+                                <p class="text-muted small">No subido aún</p>
                                 <input type="file" name="video_demora" id="video_demora" accept="video/*" capture="environment" class="form-control">
                             {% endif %}
                         </div>
@@ -122,6 +126,17 @@
                         <label class="form-label fw-bold text-warning">¿Hubo demora? Justificación</label>
                         <textarea name="justificacion_demora" class="form-control" rows="3" placeholder="Explica por qué tardó más de lo normal">{{ orden.justificacion_demora or '' }}</textarea>
                     </div>
+                </div>
+
+                <!-- DEBUG TEMPORAL (BORRAR CUANDO FUNCIONE TODO) -->
+                <div class="mt-4 p-3 bg-light border rounded">
+                    <small class="text-muted">
+                        <strong>Debug videos (borrar después):</strong><br>
+                        Inicial: {{ orden.video_inicial or 'No subido' }}<br>
+                        Falla: {{ orden.video_falla or 'No subido' }}<br>
+                        Final: {{ orden.video_final or 'No subido' }}<br>
+                        Demora: {{ orden.video_demora or 'No subido' }}
+                    </small>
                 </div>
 
                 <div class="d-grid gap-3 mt-5">
