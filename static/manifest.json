@@ -9,6 +9,7 @@
   "theme_color": "#0066ff",
   "orientation": "portrait-primary",
   "prefer_related_applications": false,
+  "version": "2025.12.16.1",   
   "icons": [
     {
       "src": "/static/logo192.png",
