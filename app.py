@@ -24,7 +24,17 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'nova_frost_2025_super_secret
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # "now" como datetime real (funciona con .strftime en templates)
-app.jinja_env.globals['now'] = datetime.now(timezone.utc)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'nova_frost_2025_super_secreto_ultra_seguro_1234567890!@#')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Hora y fecha local de Perú (Lima) – siempre correcta
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+def now_peru():
+    return datetime.now(ZoneInfo("America/Lima"))
+
+app.jinja_env.globals['now'] = now_peru
 
 db.init_app(app)
 
