@@ -91,7 +91,7 @@ with app.app_context():
 
 # ====================== FUNCIÓN PARA SUBIR VIDEOS A DRIVE ======================
 def subir_video_a_drive(filepath, filename, carpeta_id):
-    creds_json = os.getenv('GOOGLE_DRIVE_CREDENTIALS')
+    creds_json = os.getenv('DRIVE_CREDS')
     if not creds_json:
         raise Exception("Credenciales Google Drive no configuradas")
     
