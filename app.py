@@ -101,9 +101,6 @@ def subir_video_a_drive(filepath, filename, carpeta_id):
     creds_info = json.loads(creds_json)
     creds = Credentials.from_service_account_info(creds_info, scopes=['https://www.googleapis.com/auth/drive.file'])
     
-    # Esta línea hace que la cuenta de servicio suba como si fueras tú
-    creds = creds.with_subject('jhonjerrybrown@gmail.com')  # <<< TU EMAIL REAL AQUÍ
-    
     service = build('drive', 'v3', credentials=creds)
 
     file_metadata = {
