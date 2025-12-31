@@ -7,7 +7,10 @@ from datetime import datetime, timezone
 import os
 import json
 import uuid
-from google.oauth2.service_account import Credentials
+
+# --- NUEVAS IMPORTACIONES PARA OAUTH2 (Google One 2TB) ---
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -22,6 +25,9 @@ else:
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'nova_frost_2025_super_secreto_ultra_seguro_1234567890!@#')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# "now" como datetime real (funciona con .strftime en templates)
+# (tu código de now_peru o lambda aquí si lo tienes)
 
 # "now" como datetime real (funciona con .strftime en templates)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'nova_frost_2025_super_secreto_ultra_seguro_1234567890!@#')
@@ -91,32 +97,55 @@ with app.app_context():
 
 # ====================== FUNCIÓN PARA SUBIR VIDEOS A DRIVE ======================
 def subir_video_a_drive(filepath, filename, carpeta_id):
-    creds_json = os.getenv('DRIVE_CREDS')
-    print("DEBUG: DRIVE_CREDS value:", creds_json if creds_json else "Not set")
-    if creds_json:
-        print("DEBUG: First 50 chars of creds_json:", creds_json[:50])
-    if not creds_json:
-        raise Exception("Credenciales Google Drive no configuradas")
-    
-    creds_info = json.loads(creds_json)
-    creds = Credentials.from_service_account_info(creds_info, scopes=['https://www.googleapis.com/auth/drive.file'])
-    
-    service = build('drive', 'v3', credentials=creds)
-
-    file_metadata = {
-        'name': filename,
-        'parents': [carpeta_id]
-    }
-    media = MediaFileUpload(filepath, mimetype='video/mp4', resumable=True)
-    file = service.files().create(body=file_metadata, media_body=media, fields='id, webViewLink').execute()
-    
-    # Hacer público para reproducción directa
-    service.permissions().create(
-        fileId=file['id'],
-        body={'type': 'anyone', 'role': 'reader'}
-    ).execute() 
-    
-    return file['webViewLink']
+    """
+    Sube un video a Google Drive usando OAuth2 (tu cuenta personal con Google One)
+    """
+    refresh_token = os.getenv('GOOGLE_REFRESH_TOKEN')
+    client_id = os.getenv('GOOGLE_CLIENT_ID')
+    client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+   
+    if not all([refresh_token, client_id, client_secret]):
+        current_app.logger.error("Variables de entorno de Google Drive no configuradas")
+        raise Exception("Credenciales Google Drive no configuradas en Render")
+   
+    try:
+        creds = Credentials(
+            token=None,
+            refresh_token=refresh_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=client_id,
+            client_secret=client_secret,
+            scopes=['https://www.googleapis.com/auth/drive.file']
+        )
+       
+        creds.refresh(Request())
+       
+        service = build('drive', 'v3', credentials=creds)
+       
+        file_metadata = {
+            'name': filename,
+            'parents': [carpeta_id]
+        }
+       
+        media = MediaFileUpload(filepath, mimetype='video/mp4', resumable=True)
+       
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, webViewLink'
+        ).execute()
+       
+        service.permissions().create(
+            fileId=file['id'],
+            body={'type': 'anyone', 'role': 'reader'}
+        ).execute()
+       
+        current_app.logger.info(f"Video subido con éxito: {filename} (ID: {file['id']})")
+        return file['webViewLink']
+   
+    except Exception as e:
+        current_app.logger.error(f"Error subiendo video {filename} a Drive: {str(e)}")
+        raise Exception(f"Fallo en la subida a Drive: {str(e)}")
 
 # ====================== RUTAS ======================
 @app.route('/')
