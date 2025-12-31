@@ -49,8 +49,8 @@
                             <label class="form-label fw-bold text-danger">1. Video inicial (cómo encontró el equipo)</label>
                             {% if orden.video_inicial %}
                                 <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
-                                    <video controls class="w-100" preload="metadata">
-                                        <source src="{{ orden.video_inicial }}#t=0.1" type="video/mp4">
+                                    <video controls preload="metadata" poster="/static/img/video-placeholder.jpg">
+                                        <source src="{{ orden.video_inicial }}" type="video/mp4">
                                         Tu navegador no soporta video.
                                     </video>
                                 </div>
@@ -68,8 +68,8 @@
                             <label class="form-label fw-bold text-danger">2. Video describiendo la falla</label>
                             {% if orden.video_falla %}
                                 <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
-                                    <video controls class="w-100" preload="metadata">
-                                        <source src="{{ orden.video_falla }}#t=0.1" type="video/mp4">
+                                    <video controls preload="metadata" poster="/static/img/video-placeholder.jpg">
+                                        <source src="{{ orden.video_falla }}" type="video/mp4">
                                         Tu navegador no soporta video.
                                     </video>
                                 </div>
@@ -87,8 +87,8 @@
                             <label class="form-label fw-bold text-success">3. Video final (equipo funcionando)</label>
                             {% if orden.video_final %}
                                 <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
-                                    <video controls class="w-100" preload="metadata">
-                                        <source src="{{ orden.video_final }}#t=0.1" type="video/mp4">
+                                    <video controls preload="metadata" poster="/static/img/video-placeholder.jpg">
+                                        <source src="{{ orden.video_final }}" type="video/mp4">
                                         Tu navegador no soporta video.
                                     </video>
                                 </div>
@@ -106,8 +106,8 @@
                             <label class="form-label fw-bold text-warning">4. Video de demora (opcional)</label>
                             {% if orden.video_demora %}
                                 <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
-                                    <video controls class="w-100" preload="metadata">
-                                        <source src="{{ orden.video_demora }}#t=0.1" type="video/mp4">
+                                    <video controls preload="metadata" poster="/static/img/video-placeholder.jpg">
+                                        <source src="{{ orden.video_demora }}" type="video/mp4">
                                         Tu navegador no soporta video.
                                     </video>
                                 </div>
