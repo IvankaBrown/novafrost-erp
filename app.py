@@ -98,7 +98,7 @@ with app.app_context():
 # ====================== FUNCIÓN PARA SUBIR VIDEOS A DRIVE ======================
 def subir_video_a_drive(filepath, filename, carpeta_id):
     """
-    Sube un video a Google Drive usando OAuth2 (tu cuenta personal con Google One)
+    Sube un video a Google Drive usando OAuth2 y devuelve enlace directo para reproducción.
     """
     refresh_token = os.getenv('GOOGLE_REFRESH_TOKEN')
     client_id = os.getenv('GOOGLE_CLIENT_ID')
@@ -109,6 +109,7 @@ def subir_video_a_drive(filepath, filename, carpeta_id):
         raise Exception("Credenciales Google Drive no configuradas en Render")
    
     try:
+        # Configuración de credenciales con tu cuenta de 2TB
         creds = Credentials(
             token=None,
             refresh_token=refresh_token,
@@ -118,6 +119,7 @@ def subir_video_a_drive(filepath, filename, carpeta_id):
             scopes=['https://www.googleapis.com/auth/drive.file']
         )
        
+        # Refrescar el token automáticamente
         creds.refresh(Request())
        
         service = build('drive', 'v3', credentials=creds)
@@ -127,24 +129,31 @@ def subir_video_a_drive(filepath, filename, carpeta_id):
             'parents': [carpeta_id]
         }
        
+        # 'resumable=True' ayuda si el internet del técnico es inestable
         media = MediaFileUpload(filepath, mimetype='video/mp4', resumable=True)
        
         file = service.files().create(
             body=file_metadata,
             media_body=media,
-            fields='id, webViewLink'
+            fields='id'
         ).execute()
        
+        file_id = file['id']
+        
+        # Hacerlo público para que el Dashboard pueda leerlo sin loguearse en Drive
         service.permissions().create(
-            fileId=file['id'],
+            fileId=file_id,
             body={'type': 'anyone', 'role': 'reader'}
         ).execute()
-       
-        current_app.logger.info(f"Video subido con éxito: {filename} (ID: {file['id']})")
-        return file['webViewLink']
-   
+        
+        # ENLACE DIRECTO OPTIMIZADO PARA DASHBOARD
+        direct_link = f"https://drive.google.com/uc?id={file_id}&export=download"
+        
+        current_app.logger.info(f"ÉXITO: Video {filename} disponible en 2TB (ID: {file_id})")
+        return direct_link
+    
     except Exception as e:
-        current_app.logger.error(f"Error subiendo video {filename} a Drive: {str(e)}")
+        current_app.logger.error(f"Error crítico subiendo video {filename}: {str(e)}")
         raise Exception(f"Fallo en la subida a Drive: {str(e)}")
 
 # ====================== RUTAS ======================
