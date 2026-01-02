@@ -1,124 +1,154 @@
 {% extends "base.html" %}
-{% block title %}Detalle Orden #{{ orden.id }}{% endblock %}
+{% block title %}Detalle Orden #{{ orden.id }} - NovaFrost{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <h2 class="text-center mb-4">Detalle Completo de Orden #{{ orden.id }}</h2>
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <div class="card border-0 shadow-lg rounded-4">
-                <div class="card-header bg-primary text-white text-center py-4">
-                    <h3>Estado: <strong class="text-warning">{{ orden.estado|title }}</strong></h3>
-                    <p class="mb-0">Cliente: {{ orden.cliente.nombre }} • Técnico: {{ orden.tecnico.nombre_completo() if orden.tecnico else 'Sin asignar' }}</p>
-                </div>
-                <div class="card-body p-5">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <h5><strong>Falla Reportada</strong></h5>
-                            <p class="bg-light p-3 rounded">{{ orden.falla }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h5><strong>Tipo de Aparato</strong></h5>
-                            <p class="fs-4">{{ orden.tipo_aparato }}</p>
-                        </div>
+<div class="container py-4">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-primary text-white py-4 text-center">
+            <h3 class="mb-2 fw-bold">
+                <i class="bi bi-eye-fill me-2"></i>Detalle Completo de Orden #{{ orden.id }}
+            </h3>
+            <p class="mb-0 fs-5">
+                Estado: <strong class="text-warning">{{ orden.estado|title }}</strong> • 
+                Cliente: {{ orden.cliente.nombre }} • 
+                Técnico: {{ orden.tecnico.nombre_completo() if orden.tecnico else 'Sin asignar' }}
+            </p>
+        </div>
+
+        <div class="card-body p-4 p-lg-5">
+            <!-- Información básica -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold text-muted text-uppercase small">Falla Reportada por el Cliente</label>
+                    <div class="p-3 bg-light rounded-3 border">
+                        {{ orden.falla or 'Sin descripción' }}
                     </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold text-muted text-uppercase small">Tipo de Aparato</label>
+                    <div class="p-3 bg-light rounded-3 border fs-5 fw-bold text-primary">
+                        {{ orden.tipo_aparato }}
+                    </div>
+                </div>
 
-                    <!-- TODOS LOS VIDEOS CON DESCARGA -->
-                    <div class="mt-5 p-4 border rounded-3 bg-light shadow-sm">
-                        <h4 class="text-primary mb-4">
-                            Videos del Técnico (para revisión y marketing)
-                        </h4>
+                {% if orden.falla_encontrada %}
+                <div class="col-12">
+                    <label class="form-label fw-bold text-danger text-uppercase small">Diagnóstico del Técnico</label>
+                    <div class="p-4 bg-danger bg-opacity-10 rounded-4 border border-danger">
+                        {{ orden.falla_encontrada }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
 
-                        <div class="row g-3">
-                            <!-- Video inicial -->
-                            <div class="col-md-6 mb-4">
-                                <label class="form-label fw-bold text-danger">1. Video inicial (cómo encontró el equipo)</label>
-                                {% if orden.video_inicial %}
-                                    <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
-                                        <video controls class="w-100">
-<source src="{{ orden.video_inicial }}" type="video/mp4">
-                                        </video>
-                                    </div>
-                                    <div class="text-center">
-                                        <a href="{{ orden.video_inicial }}" download class="btn btn-success btn-sm">
-                                            Descargar Video Inicial
-                                        </a>
-                                    </div>
-                                {% else %}
-                                    <p class="text-muted">No subido aún</p>
-                                {% endif %}
+            <!-- Videos -->
+            <div class="p-4 bg-light rounded-4 shadow-sm mb-5">
+                <h4 class="text-primary fw-bold mb-4">
+                    <i class="bi bi-camera-video-fill me-2"></i>Evidencia en Video
+                </h4>
+
+                <div class="row g-4">
+                    <!-- Video Inicial -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-danger">1. Video Inicial (recepción del equipo)</label>
+                        {% if orden.video_inicial %}
+                            <div class="ratio ratio-16x9 mb-3 border rounded overflow-hidden shadow">
+                                <iframe src="{{ orden.video_inicial|replace('uc?id=', 'file/d/')|replace('&export=download', '/preview') }}" 
+                                        allowfullscreen class="rounded"></iframe>
                             </div>
-
-                            <!-- Video falla -->
-                            <div class="col-md-6 mb-4">
-                                <label class="form-label fw-bold text-danger">2. Video describiendo la falla</label>
-                                {% if orden.video_falla %}
-                                    <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
-                                        <video controls class="w-100">
-                                            <source src="{{ orden.video_falla }}" type="video/mp4">
-                                        </video>
-                                    </div>
-                                    <div class="text-center">
-                                        <a href="{{ orden.video_falla }}" download class="btn btn-success btn-sm">
-                                            Descargar Video Falla
-                                        </a>
-                                    </div>
-                                {% else %}
-                                    <p class="text-muted">No subido aún</p>
-                                {% endif %}
+                            <div class="text-center">
+                                <a href="{{ orden.video_inicial }}" target="_blank" class="btn btn-success btn-sm shadow-sm">
+                                    <i class="bi bi-download me-1"></i>Descargar Inicial
+                                </a>
                             </div>
-
-                            <!-- Video final -->
-                            <div class="col-md-6 mb-4">
-                                <label class="form-label fw-bold text-success">3. Video final (equipo funcionando)</label>
-                                {% if orden.video_final %}
-                                    <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
-                                        <video controls class="w-100">
-                                            <source src="{{ orden.video_final }}" type="video/mp4">
-                                        </video>
-                                    </div>
-                                    <div class="text-center">
-                                        <a href="{{ orden.video_final }}" download class="btn btn-success btn-sm">
-                                            Descargar Video Final
-                                        </a>
-                                    </div>
-                                {% else %}
-                                    <p class="text-muted">No subido aún</p>
-                                {% endif %}
-                            </div>
-
-                            <!-- Video demora -->
-                            <div class="col-md-6 mb-4">
-                                <label class="form-label fw-bold text-warning">4. Video de demora (opcional)</label>
-                                {% if orden.video_demora %}
-                                    <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
-                                        <video controls class="w-100">
-                                            <source src="{{ orden.video_demora }}" type="video/mp4">
-                                        </video>
-                                    </div>
-                                    <div class="text-center">
-                                        <a href="{{ orden.video_demora }}" download class="btn btn-success btn-sm">
-                                            Descargar Video Demora
-                                        </a>
-                                    </div>
-                                {% else %}
-                                    <p class="text-muted">No subido</p>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <!-- Justificación demora -->
-                        {% if orden.justificacion_demora %}
-                            <div class="mt-4 p-3 bg-warning bg-opacity-10 border border-warning rounded">
-                                <label class="form-label fw-bold text-warning">Justificación de demora</label>
-                                <p class="mb-0">{{ orden.justificacion_demora }}</p>
+                        {% else %}
+                            <div class="p-5 border rounded-3 text-center text-muted bg-white">
+                                <i class="bi bi-camera-video-off fs-1 mb-3"></i>
+                                <p>No subido</p>
                             </div>
                         {% endif %}
                     </div>
 
-                    <div class="text-center mt-5">
-                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg">Volver al Dashboard</a>
+                    <!-- Video Falla -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-danger">2. Video de la Falla Encontrada</label>
+                        {% if orden.video_falla %}
+                            <div class="ratio ratio-16x9 mb-3 border rounded overflow-hidden shadow">
+                                <iframe src="{{ orden.video_falla|replace('uc?id=', 'file/d/')|replace('&export=download', '/preview') }}" 
+                                        allowfullscreen class="rounded"></iframe>
+                            </div>
+                            <div class="text-center">
+                                <a href="{{ orden.video_falla }}" target="_blank" class="btn btn-success btn-sm shadow-sm">
+                                    <i class="bi bi-download me-1"></i>Descargar Falla
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="p-5 border rounded-3 text-center text-muted bg-white">
+                                <i class="bi bi-camera-video-off fs-1 mb-3"></i>
+                                <p>No subido</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Video Final -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-success">3. Video Final (equipo funcionando)</label>
+                        {% if orden.video_final %}
+                            <div class="ratio ratio-16x9 mb-3 border rounded overflow-hidden shadow">
+                                <iframe src="{{ orden.video_final|replace('uc?id=', 'file/d/')|replace('&export=download', '/preview') }}" 
+                                        allowfullscreen class="rounded"></iframe>
+                            </div>
+                            <div class="text-center">
+                                <a href="{{ orden.video_final }}" target="_blank" class="btn btn-success btn-sm shadow-sm">
+                                    <i class="bi bi-download me-1"></i>Descargar Final
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="p-5 border rounded-3 text-center text-muted bg-white">
+                                <i class="bi bi-camera-video-off fs-1 mb-3"></i>
+                                <p>No subido</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Video Demora -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-warning">4. Video Justificación de Demora (opcional)</label>
+                        {% if orden.video_demora %}
+                            <div class="ratio ratio-16x9 mb-3 border rounded overflow-hidden shadow">
+                                <iframe src="{{ orden.video_demora|replace('uc?id=', 'file/d/')|replace('&export=download', '/preview') }}" 
+                                        allowfullscreen class="rounded"></iframe>
+                            </div>
+                            <div class="text-center">
+                                <a href="{{ orden.video_demora }}" target="_blank" class="btn btn-success btn-sm shadow-sm">
+                                    <i class="bi bi-download me-1"></i>Descargar Demora
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="p-5 border rounded-3 text-center text-muted bg-white">
+                                <i class="bi bi-camera-video-off fs-1 mb-3"></i>
+                                <p>No subido</p>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
+            </div>
+
+            <!-- Justificación demora -->
+            {% if orden.justificacion_demora %}
+            <div class="p-4 bg-warning bg-opacity-10 rounded-4 border border-warning mb-5">
+                <label class="form-label fw-bold text-warning">
+                    <i class="bi bi-clock-history me-2"></i>Justificación de Demora
+                </label>
+                <p class="mb-0 fs-5">{{ orden.justificacion_demora }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Botón volver -->
+            <div class="text-center">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary btn-lg px-5 shadow-sm">
+                    <i class="bi bi-arrow-left-circle me-2"></i>Volver al Dashboard
+                </a>
             </div>
         </div>
     </div>

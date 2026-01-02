@@ -1,23 +1,54 @@
 {% extends "base.html" %}
-{% block title %}Dar Anticipo{% endblock %}
+{% block title %}Dar Anticipo - NovaFrost{% endblock %}
+
 {% block content %}
-    <div class="container mt-5" style="max-width: 500px;">
-        <h2 class="mb-4">Dar Anticipo a Técnico</h2>
-        <form method="POST" action="{{ url_for('dar_anticipo') }}">
-            <div class="form-group">
-                <label for="tecnico_id">Técnico</label>
-                <select class="form-control" id="tecnico_id" name="tecnico_id" required>
-                    {% for user in tecnicos %}
-                    <option value="{{ user.id }}">{{ user.username }}</option>
-                    {% endfor %}
-                </select>
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="bi bi-cash-stack text-primary" style="font-size: 2rem;"></i>
+                    <h2 class="h4 mt-2 fw-bold">Dar Anticipo</h2>
+                    <p class="text-muted small">Asigna dinero para pasajes o gastos</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('dar_anticipo') }}">
+                    <div class="mb-3">
+                        <label for="tecnico_id" class="form-label fw-semibold">Técnico Destinatario</label>
+                        <select class="form-select form-select-lg" id="tecnico_id" name="tecnico_id" required>
+                            <option value="" selected disabled>Seleccionar técnico...</option>
+                            {% for user in tecnicos %}
+                                <option value="{{ user.id }}">{{ user.nombre_completo() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="monto" class="form-label fw-semibold">Monto (S/.)</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-white">S/.</span>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="monto" 
+                                   name="monto" 
+                                   step="0.01" 
+                                   placeholder="0.00" 
+                                   inputmode="decimal" 
+                                   required>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg fw-bold">
+                            <i class="bi bi-check-circle-fill"></i> Confirmar Entrega
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-light text-muted">
+                            Cancelar y Volver
+                        </a>
+                    </div>
+                </form>
             </div>
-            <div class="form-group">
-                <label for="monto">Monto</label>
-                <input type="number" class="form-control" id="monto" name="monto" step="0.01" required>
-            </div>
-            <button type="submit" class="btn btn-primary btn-block">Dar Anticipo</button>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-2">Volver</a>
-        </form>
+        </div>
     </div>
+</div>
 {% endblock %}

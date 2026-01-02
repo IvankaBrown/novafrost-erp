@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container py-5">
 
-    <!-- BIENVENIDA -->
+    <!-- Encabezado -->
     <div class="d-flex justify-content-between align-items-center mb-5">
         <div>
             <h1 class="display-5 fw-bold text-primary mb-2">
@@ -18,7 +18,7 @@
         </div>
     </div>
 
-    <!-- ESTADÍSTICAS -->
+    <!-- Cards de resumen -->
     <div class="row g-4 mb-5">
         <div class="col-md-3">
             <div class="card border-0 shadow-sm h-100 text-center py-4 bg-primary text-white">
@@ -52,45 +52,49 @@
         </div>
     </div>
 
-    <!-- ACCIONES + FILTRO -->
+    <!-- Botones y filtro -->
     <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
         <div class="d-flex gap-3">
             <a href="{{ url_for('crear_orden') }}" class="btn btn-success btn-lg shadow-sm">
-                Nueva Orden
+                <i class="bi bi-plus-circle me-2"></i>Nueva Orden
             </a>
             <button type="button" class="btn btn-info btn-lg text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#darAnticipoModal">
-                Dar Anticipo
+                <i class="bi bi-cash-coin me-2"></i>Dar Anticipo
             </button>
         </div>
 
         <form method="GET" class="d-flex gap-2">
             <select name="estado" class="form-select form-select-lg" onchange="this.form.submit()">
-                <option value="">Todas</option>
+                <option value="">Todas las órdenes</option>
                 <option value="pendiente" {% if request.args.get('estado')=='pendiente' %}selected{% endif %}>Pendientes</option>
                 <option value="completado" {% if request.args.get('estado')=='completado' %}selected{% endif %}>Completadas</option>
                 <option value="urgente" {% if request.args.get('estado')=='urgente' %}selected{% endif %}>Urgentes</option>
             </select>
-            <button type="submit" class="btn btn-primary btn-lg">Filtrar</button>
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-funnel"></i> Filtrar
+            </button>
         </form>
     </div>
 
-    <!-- MAPA EN VIVO DE TÉCNICOS -->
+    <!-- Mapa en vivo -->
     <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-5">
         <div class="card-header bg-success text-white py-4 d-flex justify-content-between align-items-center">
             <h3 class="mb-0">
-                Ubicación en vivo de técnicos
+                <i class="bi bi-geo-alt-fill me-2"></i>Ubicación en vivo de técnicos
             </h3>
             <small id="ultima-actualizacion" class="opacity-75">Cargando...</small>
         </div>
         <div class="card-body p-0">
-            <div id="mapa" style="height: 500px;"></div>
+            <div id="mapa" style="height: 500px; border-radius: 0 0 15px 15px;"></div>
         </div>
     </div>
 
-    <!-- TABLA DE ÓRDENES -->
+    <!-- Tabla de órdenes recientes -->
     <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-5">
         <div class="card-header bg-primary text-white py-4">
-            <h3 class="mb-0">Órdenes Recientes</h3>
+            <h3 class="mb-0">
+                <i class="bi bi-list-task me-2"></i>Órdenes Recientes
+            </h3>
         </div>
         <div class="card-body p-0">
             {% if ordenes %}
@@ -103,14 +107,14 @@
                             <th>Técnico</th>
                             <th>Estado</th>
                             <th>Falla Reportada / Diagnosticada</th>
-                            <th>Videos</th> <!-- NUEVA COLUMNA PARA VIDEOS -->
+                            <th>Videos</th>
                             <th>Acciones</th>
                             <th class="text-center">Check Final</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for orden in ordenes %}
-                        <tr class="{% if orden.estado == 'urgente' %}table-danger{% elif orden.estado == 'completado' %}table-success table-success-opacity-10{% endif %}">
+                        <tr class="{% if orden.estado == 'urgente' %}table-danger{% elif orden.estado == 'completado' %}table-success table-opacity-10{% endif %}">
                             <td class="fw-bold text-primary">#{{ orden.id }}</td>
                             <td>
                                 <div class="fw-bold">{{ orden.cliente.nombre }}</div>
@@ -124,7 +128,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="badge rounded-pill px-3 py-2
+                                <span class="badge rounded-pill px-3 py-2 fs-6
                                     {% if orden.estado == 'completado' %}bg-success
                                     {% elif orden.estado == 'pendiente' %}bg-warning text-dark
                                     {% elif orden.estado == 'urgente' %}bg-danger
@@ -134,68 +138,81 @@
                             </td>
                             <td>
                                 <div class="mb-2">
-                                    <strong class="text-primary">Reportada por cliente:</strong><br>
+                                    <strong class="text-primary">Reportada:</strong><br>
                                     <small class="text-muted">{{ orden.falla|default('Sin descripción') }}</small>
                                 </div>
                                 {% if orden.falla_encontrada %}
                                 <div>
-                                    <strong class="text-danger">Diagnosticada por técnico:</strong><br>
+                                    <strong class="text-danger">Diagnosticada:</strong><br>
                                     <small>{{ orden.falla_encontrada }}</small>
                                 </div>
-                                {% else %}
-                                <small class="text-muted">Pendiente de diagnóstico</small>
                                 {% endif %}
                             </td>
                             <td>
-                                <!-- VIDEOS EN ACORDEÓN PARA NO SOBRECARGAR LA TABLA -->
                                 <div class="accordion accordion-flush" id="videosAccordion{{ orden.id }}">
-                                    {% if orden.video_inicial %}
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header">
-                                            <button class="accordion-button collapsed fw-bold text-primary" type="button" data-bs-toggle="collapse" data-bs-target="#videoInicial{{ orden.id }}">
-                                                Video Inicial
-                                            </button>
-                                        </h2>
-                                        <div id="videoInicial{{ orden.id }}" class="accordion-collapse collapse">
-                                            <div class="accordion-body p-0">
-                                                <video width="100%" controls preload="metadata" poster="/static/img/video-placeholder.jpg">
-                                                    <source src="{{ orden.video_inicial }}" type="video/mp4">
-                                                    Tu navegador no soporta videos.
-                                                </video>
+                                    {% if orden.video_inicial or orden.video_falla or orden.video_final %}
+                                        {% if orden.video_inicial %}
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed fw-bold text-primary py-2" type="button" data-bs-toggle="collapse" data-bs-target="#videoInicial{{ orden.id }}">
+                                                    Video Inicial
+                                                </button>
+                                            </h2>
+                                            <div id="videoInicial{{ orden.id }}" class="accordion-collapse collapse">
+                                                <div class="accordion-body p-0">
+                                                    <div class="ratio ratio-16x9">
+                                                        <iframe src="{{ orden.video_inicial|replace('uc?id=', 'file/d/')|replace('&export=download', '/preview') }}" allowfullscreen class="rounded"></iframe>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    {% endif %}
-                                    {% if orden.video_falla %}
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header">
-                                            <button class="accordion-button collapsed fw-bold text-danger" type="button" data-bs-toggle="collapse" data-bs-target="#videoFalla{{ orden.id }}">
-                                                Video Falla
-                                            </button>
-                                        </h2>
-                                        <div id="videoFalla{{ orden.id }}" class="accordion-collapse collapse">
-                                            <div class="accordion-body p-0">
-                                                <video width="100%" controls preload="metadata" poster="/static/img/video-placeholder.jpg">
-                                                    <source src="{{ orden.video_falla }}" type="video/mp4">
-                                                    Tu navegador no soporta videos.
-                                                </video>
+                                        {% endif %}
+
+                                        {% if orden.video_falla %}
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed fw-bold text-danger py-2" type="button" data-bs-toggle="collapse" data-bs-target="#videoFalla{{ orden.id }}">
+                                                    Video Falla
+                                                </button>
+                                            </h2>
+                                            <div id="videoFalla{{ orden.id }}" class="accordion-collapse collapse">
+                                                <div class="accordion-body p-0">
+                                                    <div class="ratio ratio-16x9">
+                                                        <iframe src="{{ orden.video_falla|replace('uc?id=', 'file/d/')|replace('&export=download', '/preview') }}" allowfullscreen class="rounded"></iframe>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    {% endif %}
-                                    {% if not orden.video_inicial and not orden.video_falla %}
-                                    <small class="text-muted">Sin videos</small>
+                                        {% endif %}
+
+                                        {% if orden.video_final %}
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed fw-bold text-success py-2" type="button" data-bs-toggle="collapse" data-bs-target="#videoFinal{{ orden.id }}">
+                                                    Video Final
+                                                </button>
+                                            </h2>
+                                            <div id="videoFinal{{ orden.id }}" class="accordion-collapse collapse">
+                                                <div class="accordion-body p-0">
+                                                    <div class="ratio ratio-16x9">
+                                                        <iframe src="{{ orden.video_final|replace('uc?id=', 'file/d/')|replace('&export=download', '/preview') }}" allowfullscreen class="rounded"></iframe>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <small class="text-muted">Sin videos</small>
                                     {% endif %}
                                 </div>
                             </td>
                             <td>
-                                <div class="btn-group" role="group">
-                                    <a href="{{ url_for('ver_orden', orden_id=orden.id) }}"
-                                       class="btn btn-outline-primary btn-sm" title="Ver detalles">
+                                <div class="btn-group-vertical btn-group-sm" role="group">
+                                    <a href="{{ url_for('ver_orden', orden_id=orden.id) }}" class="btn btn-outline-primary" title="Ver detalles">
                                         <i class="bi bi-eye"></i> Ver
                                     </a>
-                                    <a href="https://wa.me/?text=*ORDEN #{{ orden.id }}*%0ACliente:* {{ orden.cliente.nombre }}%0AFalla:* {{ (orden.falla or 'Sin descripción')|urlencode }}"
-                                       target="_blank" class="btn btn-success btn-sm">
+                                    <a href="https://wa.me/?text=*ORDEN #{{ orden.id }}*%0ACliente: {{ orden.cliente.nombre }}%0AFalla: {{ (orden.falla or 'Sin descripción')|urlencode }}"
+                                       target="_blank" class="btn btn-success">
                                         <i class="bi bi-whatsapp"></i> WhatsApp
                                     </a>
                                 </div>
@@ -204,8 +221,8 @@
                                 {% if orden.estado == 'completado' and orden.video_final %}
                                     <a href="{{ url_for('check_orden', orden_id=orden.id) }}" 
                                        class="btn btn-warning btn-sm fw-bold shadow-sm" 
-                                       onclick="return confirm('¿Confirmas que el trabajo está OK? Se enviará WhatsApp al cliente')">
-                                        Check & Enviar
+                                       onclick="return confirm('¿Confirmas que el trabajo está OK? Se enviará mensaje al cliente')">
+                                        <i class="bi bi-check2-circle me-1"></i>Check & Enviar
                                     </a>
                                 {% elif orden.estado == 'completado' %}
                                     <small class="text-muted">Falta video final</small>
@@ -220,79 +237,121 @@
             </div>
             {% else %}
             <div class="text-center py-5">
-                <h4 class="text-muted">No hay órdenes registradas</h4>
+                <h4 class="text-muted">No hay órdenes registradas aún</h4>
+                <p class="text-muted">¡Comienza creando la primera orden!</p>
             </div>
             {% endif %}
         </div>
     </div>
 
-<!-- Leaflet CSS + JS -->
+</div>
+
+<!-- Leaflet CSS y JS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// Inicializar mapa centrado en Lima
+// Inicializar mapa
 const map = L.map('mapa').setView([-12.0464, -77.0428], 11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
+    attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
-// Marcadores existentes
+// Objeto para guardar marcadores
 let markers = {};
 
 // Función para actualizar el mapa
 function actualizarMapa() {
     fetch('/get_gps_tecnicos')
-        .then(r => r.json())
+        .then(response => response.json())
         .then(data => {
             const ahora = new Date().toLocaleTimeString('es-PE');
             document.getElementById('ultima-actualizacion').textContent = 'Actualizado: ' + ahora;
 
-            // Limpiar marcadores antiguos
+            // Remover marcadores que ya no están activos
             Object.keys(markers).forEach(id => {
-                if (!data[id]) map.removeLayer(markers[id]);
+                if (!data.some(t => t.id == id)) {
+                    map.removeLayer(markers[id]);
+                    delete markers[id];
+                }
             });
 
             // Añadir o actualizar marcadores
-            Object.entries(data).forEach(([id, t]) => {
-                const key = id;
+            data.forEach(t => {
                 const icon = L.divIcon({
-                    className: 'text-success',
-                    html: `<i class="bi bi-person-bounding-box fs-1"></i>`,
+                    className: '',
+                    html: `<i class="bi bi-person-bounding-box" style="font-size: 2.5rem; color: #198754; text-shadow: 2px 2px 6px rgba(0,0,0,0.5);"></i>`,
                     iconSize: [40, 40],
                     iconAnchor: [20, 40]
                 });
 
-                if (markers[key]) {
-                    markers[key].setLatLng([t.lat, t.lng])
+                if (markers[t.id]) {
+                    markers[t.id].setLatLng([t.lat, t.lng])
                         .setPopupContent(`<strong>${t.nombre}</strong><br>Última actualización: ${t.timestamp}`);
                 } else {
-                    markers[key] = L.marker([t.lat, t.lng], { icon: icon })
+                    markers[t.id] = L.marker([t.lat, t.lng], { icon })
                         .addTo(map)
-                        .bindPopup(`<strong>${t.nombre}</strong><br>Actualizando...`)
+                        .bindPopup(`<strong>${t.nombre}</strong><br>Última actualización: ${t.timestamp}`)
                         .openPopup();
                 }
-
-                // Círculo de precisión
-                L.circle([t.lat, t.lng], {
-                    radius: 80,
-                    color: '#28a745',
-                    fillOpacity: 0.2
-                }).addTo(map);
             });
         })
-        .catch(() => {
-            document.getElementById('ultima-actualizacion').textContent = 'Sin conexión';
+        .catch(err => {
+            console.error('Error cargando GPS:', err);
+            document.getElementById('ultima-actualizacion').textContent = 'Error de conexión';
         });
 }
 
-// Actualizar cada 8 segundos
+// Primera carga y actualización cada 8 segundos
 actualizarMapa();
 setInterval(actualizarMapa, 8000);
 </script>
 
 <style>
-#mapa { width: 100%; height: 500px; }
+    #mapa { width: 100%; height: 500px; z-index: 1; }
+    .accordion-button:not(.collapsed) { background-color: #f8f9fa; }
+    .ratio iframe { border: 0; border-radius: 8px; }
+    .table-opacity-10 { opacity: 0.6; }
 </style>
+
+<!-- Modal Dar Anticipo -->
+<div class="modal fade" id="darAnticipoModal" tabindex="-1" aria-labelledby="darAnticipoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title fw-bold" id="darAnticipoModalLabel">
+                    <i class="bi bi-cash-coin me-2"></i>Registrar Entrega de Anticipo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('crear_anticipo') }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="mb-4">
+                        <label for="tecnico_id" class="form-label fw-bold">Técnico</label>
+                        <select name="tecnico_id" id="tecnico_id" class="form-select form-select-lg" required>
+                            <option value="" disabled selected>Seleccionar técnico...</option>
+                            {% for t in tecnicos %}
+                                <option value="{{ t.id }}">{{ t.nombre_completo() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="monto" class="form-label fw-bold">Monto (S/.)</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light text-success fw-bold">S/.</span>
+                            <input type="number" step="0.10" name="monto" id="monto" class="form-control" placeholder="0.00" min="1" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-info text-white px-5 fw-bold shadow-sm">
+                        <i class="bi bi-check2"></i> Confirmar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 {% endblock %}

@@ -1,292 +1,229 @@
 {% extends "base.html" %}
-{% block title %}Crear Orden - NovaFrost ERP{% endblock %}
+{% block title %}Nueva Orden - NovaFrost{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="card-header bg-primary text-white text-center py-4">
-                    <h2 class="mb-0 fw-bold">Nueva Orden de Servicio</h2>
-                    <p class="mb-0 opacity-90">Complete todos los datos del cliente y servicio</p>
-                </div>
-                
-                <div class="card-body p-5">
-                    <form method="POST" action="{{ url_for('crear_orden') }}">
-                        <div class="row g-4">
+<div class="container py-4">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-primary text-white py-4 text-center">
+            <h4 class="mb-0 fw-bold">
+                <i class="bi bi-file-earmark-plus me-2"></i>Nueva Orden de Servicio
+            </h4>
+        </div>
+        
+        <div class="card-body p-4 p-lg-5">
+            <form method="POST" action="{{ url_for('crear_orden') }}" novalidate>
+                <div class="row g-4">
+                    <!-- Buscador de cliente -->
+                    <div class="col-12">
+                        <label class="form-label fw-bold text-muted text-uppercase small">Buscar Cliente</label>
+                        <div class="position-relative">
+                            <input type="text" id="buscador_cliente" class="form-control form-control-lg border-primary shadow-sm" 
+                                   placeholder="Escribe el nombre del cliente..." autocomplete="off" required aria-label="Buscar cliente">
+                            <div id="resultados_busqueda" class="position-absolute w-100 bg-white border shadow-lg rounded-3 mt-1" 
+                                 style="z-index: 1050; display: none; max-height: 300px; overflow-y: auto;"></div>
+                        </div>
+                        <input type="hidden" name="cliente_id" id="cliente_id" required>
 
-                            <!-- BUSCADOR DE CLIENTE PRO -->
-                            <div class="col-md-6 position-relative">
-                                <label class="form-label fw-bold text-primary">Cliente *</label>
-                                
-                                <input type="text" id="buscador_cliente" class="form-control form-control-lg" 
-                                       placeholder="Escribe para buscar cliente..." autocomplete="off" required>
-                                
-                                <div id="resultados_busqueda" 
-                                     class="position-absolute top-100 start-0 w-100 bg-white border rounded shadow-lg mt-1" 
-                                     style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;">
+                        <!-- Info del cliente seleccionado -->
+                        <div id="info_cliente" class="mt-3 p-3 bg-light rounded-3 border-start border-primary border-5" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 id="info_nombre" class="fw-bold mb-1"></h6>
+                                    <small id="info_detalles" class="text-muted"></small>
                                 </div>
-                                
-                                <input type="hidden" name="cliente_id" id="cliente_id" required>
-
-                                <div id="info_cliente" class="mt-3 p-3 bg-light rounded border" style="display: none;">
-                                    <strong id="info_nombre" class="text-primary fs-5"></strong><br>
-                                    <span id="info_telefono" class="text-muted"></span> • 
-                                    <span id="info_distrito" class="text-muted"></span><br>
-                                    <small class="text-success">Medio: <span id="info_medio"></span></small>
-                                </div>
-
-                                <div class="mt-2">
-                                    <small class="text-muted">¿Cliente nuevo? 
-                                        <a href="#" data-bs-toggle="modal" data-bs-target="#nuevoClienteModal" 
-                                           class="text-success fw-bold">+ Crear cliente</a>
-                                    </small>
-                                </div>
-                            </div>
-
-                            <!-- TÉCNICO -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-primary">Técnico Asignado</label>
-                                <select name="tecnico_id" class="form-select form-select-lg" required>
-                                    <option value="">Seleccionar técnico</option>
-                                    {% for t in tecnicos %}
-                                    <option value="{{ t.id }}">{{ t.nombre_completo() }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <!-- TIPO DE APARATO -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-primary">Tipo de Aparato</label>
-                                <select name="tipo_aparato" class="form-select form-select-lg" required>
-                                    <option value="Refrigerador">Refrigerador</option>
-                                    <option value="Congelador">Congelador</option>
-                                    <option value="Vitrina">Vitrina Refrigerada</option>
-                                    <option value="Cava">Cava de Vinos</option>
-                                    <option value="Máquina de Hielo">Máquina de Hielo</option>
-                                    <option value="Otros">Otros</option>
-                                </select>
-                            </div>
-
-                            <!-- FALLA -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-primary">Falla Reportada</label>
-                                <textarea name="falla" class="form-control form-control-lg" rows="3" 
-                                          placeholder="Ej: No enfría, hace ruido, no prende..." required></textarea>
-                            </div>
-
-                            <!-- TOTAL + IGV AUTOMÁTICO -->
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold text-success">Total con IGV</label>
-                                <input type="number" step="0.01" name="total" id="total" class="form-control form-control-lg" 
-                                       placeholder="0.00" onchange="calcularIGV()" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold text-info">IGV (18%)</label>
-                                <input type="number" step="0.01" id="igv" class="form-control form-control-lg bg-light" readonly>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold text-warning">Valor sin IGV</label>
-                                <input type="number" step="0.01" id="valor" class="form-control form-control-lg bg-light" readonly>
-                            </div>
-
-                            <!-- NUEVOS CAMPOS: FECHA/HORA, MEDIO PAGO, COMPROBANTE -->
-                             <div class="col-md-6">
-                                 <label class="form-label fw-bold text-primary">Fecha y Hora de Atención</label>
-                                 <input type="datetime-local" name="fecha_hora_atencion" class="form-control form-control-lg" required>
-                             </div>
-                             <div class="col-md-3">
-                                 <label class="form-label fw-bold text-primary">Medio de Pago</label>
-                                 <select name="medio_pago" class="form-select form-select-lg" required>
-                                     <option value="">Seleccionar</option>
-                                     <option value="yape">Yape</option>
-                                     <option value="plin">Plin</option>
-                                     <option value="efectivo">Efectivo</option>
-                                     <option value="otro">Otro</option>
-                                 </select> 
-                             </div>
-                             
-                             <div class="col-md-3">
-                                 <label class="form-label fw-bold text-primary">Comprobante</label>
-                                 <select name="tipo_comprobante" class="form-select form-select-lg" required>
-                                     <option value="">Seleccionar</option>
-                                     <option value="boleta">Boleta</option>
-                                     <option value="factura">Factura</option>
-                                     <option value="otro">Otro</option>
-                                </select>
-                             </div>
-                             
-                            <!-- URGENTE -->
-                            <div class="col-12">
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="urgente" id="urgente">
-                                    <label class="form-check-label text-danger fw-bold" for="urgente">
-                                        URGENTE - Atender hoy mismo
-                                    </label>
-                                </div>
+                                <span class="badge bg-primary rounded-pill px-3 py-2" id="info_medio"></span>
                             </div>
                         </div>
 
-                        <hr class="my-5">
-
-                        <div class="d-grid d-md-flex justify-content-end gap-3">
-                            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-lg">
-                                Cancelar
-                            </a>
-                            <button type="submit" class="btn btn-success btn-lg px-5 fw-bold">
-                                Crear Orden y Notificar
-                            </button>
+                        <div class="mt-2 text-end">
+                            <small class="text-muted">
+                                ¿No existe el cliente? 
+                                <a href="#" data-bs-toggle="modal" data-bs-target="#nuevoClienteModal" class="text-primary fw-bold">
+                                    <i class="bi bi-person-plus"></i> + Nuevo Cliente
+                                </a>
+                            </small>
                         </div>
-                    </form>
+                    </div>
+
+                    <!-- Técnico y aparato -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-muted text-uppercase small">Técnico Asignado</label>
+                        <select name="tecnico_id" class="form-select form-select-lg" required>
+                            <option value="" disabled selected>Seleccionar técnico...</option>
+                            {% for t in tecnicos %}
+                                <option value="{{ t.id }}">{{ t.nombre_completo() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-muted text-uppercase small">Tipo de Aparato</label>
+                        <select name="tipo_aparato" class="form-select form-select-lg" required>
+                            <option value="Refrigerador">Refrigerador</option>
+                            <option value="Congelador">Congelador</option>
+                            <option value="Vitrina">Vitrina Refrigerada</option>
+                            <option value="Máquina de Hielo">Máquina de Hielo</option>
+                            <option value="Otros">Otros</option>
+                        </select>
+                    </div>
+
+                    <!-- Falla reportada -->
+                    <div class="col-12">
+                        <label class="form-label fw-bold text-muted text-uppercase small">Falla Reportada por el Cliente</label>
+                        <textarea name="falla" class="form-control" rows="3" placeholder="Describe la falla con detalle..." required></textarea>
+                    </div>
+
+                    <!-- Costos -->
+                    <div class="col-lg-4">
+                        <label class="form-label fw-bold text-success text-uppercase small">Total Cobrado (S/.)</label>
+                        <input type="number" step="0.01" min="0" name="total" id="total" class="form-control form-control-lg fw-bold text-success" 
+                               placeholder="0.00" oninput="calcularIGV()" required>
+                    </div>
+                    <div class="col-6 col-lg-4">
+                        <label class="form-label text-muted small">IGV (18%)</label>
+                        <input type="text" id="igv" class="form-control bg-light" readonly>
+                    </div>
+                    <div class="col-6 col-lg-4">
+                        <label class="form-label text-muted small">Valor Neto</label>
+                        <input type="text" id="valor" class="form-control bg-light" readonly>
+                    </div>
+
+                    <!-- Cita, pago y comprobante -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-muted text-uppercase small">Fecha y Hora de Atención</label>
+                        <input type="datetime-local" name="fecha_hora_atencion" class="form-control form-control-lg" required>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label fw-bold text-muted text-uppercase small">Medio de Pago</label>
+                        <select name="medio_pago" class="form-select form-select-lg" required>
+                            <option value="yape">Yape</option>
+                            <option value="plin">Plin</option>
+                            <option value="efectivo">Efectivo</option>
+                            <option value="transferencia">Transferencia</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label fw-bold text-muted text-uppercase small">Comprobante</label>
+                        <select name="tipo_comprobante" class="form-select form-select-lg" required>
+                            <option value="boleta">Boleta</option>
+                            <option value="factura">Factura</option>
+                            <option value="recibo">Recibo</option>
+                        </select>
+                    </div>
+
+                    <!-- Urgente -->
+                    <div class="col-12 mt-4">
+                        <div class="form-check form-switch p-4 bg-danger bg-opacity-10 rounded-4 border border-danger border-opacity-25">
+                            <input class="form-check-input" type="checkbox" name="urgente" id="urgente" style="width: 4em; height: 2em;">
+                            <label class="form-check-label text-danger fw-bold fs-5" for="urgente">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>MARCAR COMO ORDEN URGENTE
+                            </label>
+                        </div>
+                    </div>
                 </div>
-            </div>
+
+                <!-- Botones -->
+                <div class="d-flex flex-column flex-md-row gap-3 justify-content-end mt-5">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-lg px-5 order-md-1">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm order-md-2">
+                        <i class="bi bi-send-fill me-2"></i>Crear Orden
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- MODAL PARA CREAR CLIENTE NUEVO (el mismo que ya tienes en clientes.html) -->
-<!-- Puedes copiarlo desde tu clientes.html si ya lo tienes bonito -->
+<!-- Modal nuevo cliente -->
+{% include "modals/nuevo_cliente.html" %}
 
-<!-- SCRIPT DEL BUSCADOR PRO -->
 <script>
+// Cálculo IGV mejorado (redondeo preciso)
+function calcularIGV() {
+    const totalInput = document.getElementById('total');
+    const total = parseFloat(totalInput.value) || 0;
+    if (total <= 0) {
+        document.getElementById('igv').value = '';
+        document.getElementById('valor').value = '';
+        return;
+    }
+    const valor = Math.round((total / 1.18) * 100) / 100;
+    const igv = Math.round((total - valor) * 100) / 100;
+    document.getElementById('valor').value = valor.toFixed(2);
+    document.getElementById('igv').value = igv.toFixed(2);
+}
+
+// Buscador de clientes
 const buscador = document.getElementById('buscador_cliente');
 const resultados = document.getElementById('resultados_busqueda');
 const clienteIdInput = document.getElementById('cliente_id');
 const infoCliente = document.getElementById('info_cliente');
 
 buscador.addEventListener('input', function() {
-    const query = this.value.trim();
-    if (query.length < 2) {
+    const q = this.value.trim();
+    if (q.length < 2) {
         resultados.style.display = 'none';
         return;
     }
 
-    fetch(`/buscar_clientes?q=${encodeURIComponent(query)}`)
+    fetch(`/buscar_clientes?q=${encodeURIComponent(q)}`)
         .then(r => r.json())
-        .then(clientes => {
+        .then(data => {
             resultados.innerHTML = '';
-            if (clientes.length === 0) {
-                resultados.innerHTML = '<div class="p-3 text-muted">No se encontraron clientes</div>';
-                resultados.style.display = 'block';
-                return;
+            if (data.length === 0) {
+                resultados.innerHTML = '<div class="p-3 text-center text-muted fst-italic">No se encontraron clientes</div>';
+            } else {
+                data.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = 'p-3 border-bottom cursor-pointer hover-bg-light';
+                    item.innerHTML = `
+                        <div class="fw-bold">${c.nombre}</div>
+                        <small class="text-muted">
+                            ${c.telefono ? '<i class="bi bi-telephone"></i> ' + c.telefono : ''}
+                            ${c.distrito ? ' • ' + c.distrito : ''}
+                        </small>
+                    `;
+                    item.onclick = () => seleccionarCliente(c);
+                    resultados.appendChild(item);
+                });
             }
-
-            clientes.forEach(c => {
-                const div = document.createElement('div');
-                div.className = 'p-3 border-bottom hover-bg-light cursor-pointer';
-                div.innerHTML = `
-                    <div class="fw-bold">${c.nombre}</div>
-                    <small class="text-muted">${c.telefono || 'Sin teléfono'} • ${c.distrito || 'Sin distrito'} • ${c.medio_contacto}</small>
-                `;
-                div.onclick = () => {
-                    buscador.value = c.nombre;
-                    clienteIdInput.value = c.id;
-                    document.getElementById('info_nombre').textContent = c.nombre;
-                    document.getElementById('info_telefono').textContent = c.telefono || 'Sin teléfono';
-                    document.getElementById('info_distrito').textContent = c.distrito || 'Sin distrito';
-                    document.getElementById('info_medio').textContent = c.medio_contacto;
-                    infoCliente.style.display = 'block';
-                    resultados.style.display = 'none';
-                };
-                resultados.appendChild(div);
-            });
+            resultados.style.display = 'block';
+        })
+        .catch(() => {
+            resultados.innerHTML = '<div class="p-3 text-danger">Error de conexión</div>';
             resultados.style.display = 'block';
         });
 });
 
-// Cerrar al hacer click fuera
-document.addEventListener('click', function(e) {
+function seleccionarCliente(c) {
+    buscador.value = c.nombre;
+    clienteIdInput.value = c.id;
+    document.getElementById('info_nombre').textContent = c.nombre;
+    document.getElementById('info_detalles').textContent = 
+        [c.telefono, c.direccion, c.distrito].filter(Boolean).join(' • ') || 'Sin datos adicionales';
+    document.getElementById('info_medio').textContent = c.medio_contacto || 'N/A';
+    infoCliente.style.display = 'block';
+    resultados.style.display = 'none';
+    buscador.focus();
+}
+
+// Cerrar resultados al hacer click fuera
+document.addEventListener('click', (e) => {
     if (!e.target.closest('#buscador_cliente') && !e.target.closest('#resultados_busqueda')) {
         resultados.style.display = 'none';
     }
 });
+
+// Calcular IGV al cargar si hay valor
+document.addEventListener('DOMContentLoaded', calcularIGV);
 </script>
 
 <style>
-.hover-bg-light:hover { background-color: #f8f9fa !important; cursor: pointer; }
-.cursor-pointer { cursor: pointer; }
+    .hover-bg-light:hover { background-color: #f8f9fa !important; }
+    .cursor-pointer { cursor: pointer; }
+    .form-switch .form-check-input:focus { box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25); }
 </style>
 
-<script>
-function calcularIGV() {
-    const total = parseFloat(document.getElementById('total').value) || 0;
-    const igv = total * (0.18 / 1.18);
-    const valor = total - igv;
-    document.getElementById('igv').value = igv.toFixed(2);
-    document.getElementById('valor').value = valor.toFixed(2);
-}
-</script>
-<!-- MODAL NUEVO CLIENTE (copiado de clientes.html) -->
-<div class="modal fade" id="nuevoClienteModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content rounded-4">
-            <form method="POST" action="{{ url_for('crear_cliente_desde_orden') }}">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Nuevo Cliente</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Nombre del cliente *</label>
-                            <input type="text" name="nombre" class="form-control form-control-lg" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Teléfono</label>
-                            <input type="text" name="telefono" class="form-control form-control-lg">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Distrito</label>
-                            <input type="text" name="distrito" class="form-control form-control-lg">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Dirección</label>
-                            <input type="text" name="direccion" class="form-control form-control-lg">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Medio de contacto *</label>
-                            <select name="medio_contacto" class="form-select form-select-lg" required>
-                                <option value="Recomendación">Recomendación</option>
-                                <option value="TikTok">TikTok</option>
-                                <option value="Facebook">Facebook</option>
-                                <option value="Instagram">Instagram</option>
-                                <option value="YouTube">YouTube</option>
-                                <option value="Google">Google</option>
-                                <option value="WhatsApp">WhatsApp</option>
-                                <option value="Volante">Volante / Publicidad</option>
-                                <option value="Otro">Otro</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success btn-lg px-4">Crear Cliente</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-<script>
-// Si viene cliente_nuevo_id en la URL → seleccionarlo automáticamente
-const urlParams = new URLSearchParams(window.location.search);
-const clienteNuevoId = urlParams.get('cliente_nuevo_id');
-if (clienteNuevoId) {
-    // Buscar el cliente en la base y seleccionarlo
-    fetch(`/buscar_clientes?q=`)
-        .then(r => r.json())
-        .then(clientes => {
-            const cliente = clientes.find(c => c.id == clienteNuevoId);
-            if (cliente) {
-                document.getElementById('buscador_cliente').value = cliente.nombre;
-                document.getElementById('cliente_id').value = cliente.id;
-                document.getElementById('info_nombre').textContent = cliente.nombre;
-                document.getElementById('info_telefono').textContent = cliente.telefono || 'Sin teléfono';
-                document.getElementById('info_distrito').textContent = cliente.distrito || 'Sin distrito';
-                document.getElementById('info_medio').textContent = cliente.medio_contacto;
-                document.getElementById('info_cliente').style.display = 'block';
-            }
-        });
-}
-</script>
 {% endblock %}

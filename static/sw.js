@@ -1,80 +1,53 @@
-// Cambia esta versión en cada deploy importante (ej: 2025.12.16.1, 2025.12.17.1, etc.)
-const CACHE_VERSION = '2025.12.16.1';
-const CACHE_NAME = `novafrost-erp-${CACHE_VERSION}`;
+const CACHE_VERSION = '2026.01.01.1'; // Actualizado a 2026
+const CACHE_NAME = `novafrost-v${CACHE_VERSION}`;
 
-// Archivos críticos para offline
-const CRITICAL_ASSETS = [
+// Solo lo estrictamente necesario para que la app abra sin internet
+const ASSETS_TO_CACHE = [
   '/',
-  '/login',
-  '/dashboard',
-  '/static/manifest.json',
-  '/static/logo.png',
   '/static/logo192.png',
-  '/static/logo512.png',
-  '/static/firebase-init.js',
-  '/static/push.js',
-  '/static/sw.js'  // Cacheamos el propio SW para control total
+  '/static/manifest.json',
+  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
+  'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css'
 ];
 
+// 1. INSTALACIÓN: Guarda archivos básicos
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(CRITICAL_ASSETS))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE))
   );
+  self.skipWaiting();
 });
 
+// 2. ACTIVACIÓN: Borra cachés viejos automáticamente
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.filter(name => name !== CACHE_NAME)
-                  .map(name => caches.delete(name))
-      );
-    }).then(() => self.clients.claim())
+    caches.keys().then(keys => Promise.all(
+      keys.map(key => key !== CACHE_NAME ? caches.delete(key) : null)
+    ))
   );
+  self.clients.claim();
 });
 
+// 3. ESTRATEGIA DE CARGA (FETCH)
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
+  // Ignorar peticiones que no sean GET (como subir videos o POST de GPS)
+  if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        // Siempre intentar red fresca para recursos dinámicos (HTML, JS, CSS)
-        if (event.request.destination === 'document' || 
-            event.request.destination === 'script' || 
-            event.request.destination === 'style') {
-          return fetch(event.request).then(networkResponse => {
-            if (networkResponse && networkResponse.status === 200) {
-              const clone = networkResponse.clone();
-              caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-            }
-            return networkResponse;
-          }).catch(() => cachedResponse || caches.match('/'));
+    fetch(event.request)
+      .then(networkResponse => {
+        // Si hay internet, servimos y guardamos copia en caché
+        if (networkResponse && networkResponse.status === 200) {
+          const cacheCopy = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, cacheCopy));
         }
-
-        // Para assets críticos: caché primero, luego red
-        if (cachedResponse) {
-          // Actualizar en segundo plano
-          fetch(event.request).then(networkResponse => {
-            if (networkResponse && networkResponse.status === 200) {
-              caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse.clone()));
-            }
-          });
-          return cachedResponse;
-        }
-
-        // Todo lo demás: red primero, caché después
-        return fetch(event.request).then(networkResponse => {
-          if (networkResponse && networkResponse.status === 200) {
-            const clone = networkResponse.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-          }
-          return networkResponse;
-        }).catch(() => caches.match('/'));
+        return networkResponse;
+      })
+      .catch(() => {
+        // SI NO HAY INTERNET: Buscamos en el caché
+        return caches.match(event.request).then(cachedResponse => {
+          return cachedResponse || caches.match('/');
+        });
       })
   );
 });

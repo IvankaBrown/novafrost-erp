@@ -1,0 +1,68 @@
+<div class="modal fade" id="nuevoClienteModal" tabindex="-1" aria-labelledby="nuevoClienteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-success text-white py-4">
+                <h5 class="modal-title fw-bold" id="nuevoClienteModalLabel">
+                    <i class="bi bi-person-plus-fill me-2"></i>Nuevo Cliente Rápido
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            
+            <form method="POST" action="{{ url_for('crear_cliente_desde_orden') }}" novalidate>
+                <div class="modal-body p-4 p-lg-5">
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <label for="nombre" class="form-label fw-bold text-muted text-uppercase small">
+                                Nombre Completo <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="nombre" id="nombre" class="form-control form-control-lg" 
+                                   placeholder="Ej: Juan Carlos Pérez Gómez" required autofocus>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="telefono" class="form-label fw-bold text-muted text-uppercase small">Teléfono / WhatsApp</label>
+                            <input type="tel" name="telefono" id="telefono" class="form-control form-control-lg" 
+                                   placeholder="Ej: 987 654 321">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="distrito" class="form-label fw-bold text-muted text-uppercase small">Distrito</label>
+                            <input type="text" name="distrito" id="distrito" class="form-control form-control-lg" 
+                                   placeholder="Ej: San Miguel, Miraflores">
+                        </div>
+
+                        <div class="col-12">
+                            <label for="direccion" class="form-label fw-bold text-muted text-uppercase small">Dirección Completa</label>
+                            <input type="text" name="direccion" id="direccion" class="form-control form-control-lg" 
+                                   placeholder="Ej: Av. La Marina 1234, Urb. Los Pinos">
+                        </div>
+
+                        <div class="col-12">
+                            <label for="medio_contacto" class="form-label fw-bold text-muted text-uppercase small">
+                                ¿Cómo nos encontró? <span class="text-danger">*</span>
+                            </label>
+                            <select name="medio_contacto" id="medio_contacto" class="form-select form-select-lg" required>
+                                <option value="" disabled selected>Seleccionar opción...</option>
+                                <option value="TikTok">TikTok</option>
+                                <option value="Facebook">Facebook / Instagram</option>
+                                <option value="Google">Google / Búsqueda</option>
+                                <option value="Recomendación">Recomendación de familiar/amigo</option>
+                                <option value="Yape/Plin">Vio anuncio en Yape o Plin</option>
+                                <option value="Otro">Otro medio</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success btn-lg px-5 fw-bold shadow-sm">
+                        <i class="bi bi-check2-circle me-2"></i>Guardar y Seleccionar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

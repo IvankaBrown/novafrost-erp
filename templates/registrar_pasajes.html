@@ -1,62 +1,101 @@
 {% extends "base.html" %}
-{% block title %}Registrar Pasajes{% endblock %}
+{% block title %}Pasajes - Orden #{{ orden.id }}{% endblock %}
+
 {% block content %}
-    <div class="container mt-5" style="max-width: 500px;">
-        <h2 class="mb-4">Registrar Pasajes para Orden #{{ orden.id }}</h2>
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <h3 class="fw-bold text-primary">
+                    <i class="bi bi-bus-front-fill me-2"></i>Registrar Pasajes
+                </h3>
+                <p class="text-muted">Orden #{{ orden.id }} • {{ orden.cliente.nombre }}</p>
+            </div>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+            <!-- Formulario nuevo pasaje -->
+            <div class="card border-0 shadow rounded-4 mb-5">
+                <div class="card-body p-4 p-lg-5">
+                    <form method="POST">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted text-uppercase small">Anticipo de Origen *</label>
+                            <select name="anticipo_id" class="form-select form-select-lg" required>
+                                <option value="" disabled selected>Seleccionar anticipo...</option>
+                                {% for anticipo in anticipos %}
+                                    {% set gastado = anticipo.pasajes|sum(attribute='monto')|default(0) %}
+                                    {% set disponible = anticipo.monto - gastado %}
+                                    <option value="{{ anticipo.id }}">
+                                        {{ anticipo.fecha.strftime('%d/%m/%Y') }} • S/. {{ "%.2f"|format(anticipo.monto) }}
+                                        (Disponible: S/. {{ "%.2f"|format(disponible) }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text text-info mt-2">
+                                <i class="bi bi-info-circle me-1"></i>Solo se muestran anticipos pendientes.
+                            </div>
+                        </div>
 
-        <form method="POST">
-            <div class="form-group">
-                <label for="anticipo_id">Anticipo</label>
-                <select class="form-control" name="anticipo_id" id="anticipo_id" required>
-                    <option value="">-- Seleccione un anticipo --</option>
-                    {% for anticipo in anticipos %}
-                        <option value="{{ anticipo.id }}">
-                            {{ anticipo.fecha.strftime('%d/%m/%Y') }} - S/. {{ "%.2f"|format(anticipo.monto) }} (Validado: S/. {{ "%.2f"|format(anticipo.pasajes|sum(attribute='monto') if anticipo.pasajes else 0) }})
-                        </option>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted text-uppercase small">Ruta (Origen → Destino)</label>
+                            <input type="text" name="origen_destino" class="form-control form-control-lg" 
+                                   placeholder="Ej: Taller → San Juan de Lurigancho" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-success text-uppercase small">Monto del Pasaje (S/.)</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light text-success fw-bold">S/.</span>
+                                <input type="number" name="monto" step="0.10" min="0.10" class="form-control fw-bold" 
+                                       placeholder="0.00" required>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-3">
+                            <button type="submit" class="btn btn-success btn-lg fw-bold shadow-sm">
+                                <i class="bi bi-save me-2"></i>Guardar Pasaje
+                            </button>
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-lg">
+                                <i class="bi bi-arrow-left me-2"></i>Volver al Panel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de pasajes registrados -->
+            <h5 class="fw-bold text-primary mb-3">
+                <i class="bi bi-receipt me-2"></i>Pasajes Registrados en esta Orden
+            </h5>
+
+            {% if orden.pasajes %}
+                <div class="list-group list-group-flush">
+                    {% for pasaje in orden.pasajes|sort(attribute='fecha', reverse=True) %}
+                        <div class="list-group-item border-0 shadow-sm rounded-3 mb-3 p-4 bg-light">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold text-dark fs-5">{{ pasaje.origen_destino }}</div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar3 me-1"></i>{{ pasaje.fecha.strftime('%d/%m/%Y') }}
+                                        <i class="bi bi-clock ms-3 me-1"></i>{{ pasaje.fecha.strftime('%H:%M') }}
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-success rounded-pill px-4 py-3 fs-5">
+                                        S/. {{ "%.2f"|format(pasaje.monto) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="origen_destino">Origen y Destino</label>
-                <input type="text" class="form-control" name="origen_destino" required>
-            </div>
-            <div class="form-group">
-                <label for="monto">Monto S/.</label>
-                <input type="number" class="form-control" name="monto" step="0.01" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Registrar</button>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Volver</a>
-        </form>
-
-        <h6>Pasajes Registrados</h6>
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Origen y Destino</th>
-                    <th>Monto S/.</th>
-                    <th>Fecha</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for pasaje in orden.pasajes %}
-                    <tr>
-                        <td>{{ pasaje.origen_destino }}</td>
-                        <td>{{ pasaje.monto }}</td>
-                        <td>{{ pasaje.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5 bg-light rounded-4">
+                    <i class="bi bi-receipt-cutoff fs-1 text-muted mb-3"></i>
+                    <p class="text-muted fs-5">Aún no has registrado pasajes para esta orden</p>
+                    <small class="text-muted">Registra el primero arriba ↑</small>
+                </div>
+            {% endif %}
+        </div>
     </div>
+</div>
 {% endblock %}

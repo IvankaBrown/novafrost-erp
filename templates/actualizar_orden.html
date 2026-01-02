@@ -1,174 +1,170 @@
 {% extends "base.html" %}
-{% block title %}Actualizar Orden #{{ orden.id }}{% endblock %}
+{% block title %}Actualizar Orden #{{ orden.id }} - NovaFrost{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <h2 class="text-center mb-4">Actualizar Orden #{{ orden.id }}</h2>
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <form method="POST" enctype="multipart/form-data">
-                <!-- Cliente -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Cliente</label>
-                    <input type="text" class="form-control bg-light" value="{{ orden.cliente.nombre }}" readonly>
+<div class="container py-4">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-primary text-white py-4 text-center">
+            <h3 class="mb-0 fw-bold">
+                <i class="bi bi-tools me-2"></i>Actualizar Orden de Servicio #{{ orden.id }}
+            </h3>
+        </div>
+        
+        <div class="card-body p-4 p-lg-5">
+            <form method="POST" enctype="multipart/form-data" novalidate>
+                <!-- Información básica (readonly) -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-muted text-uppercase small">Cliente</label>
+                        <input type="text" class="form-control bg-light" value="{{ orden.cliente.nombre }}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-muted text-uppercase small">Técnico Asignado</label>
+                        <input type="text" class="form-control bg-light" value="{{ orden.tecnico.nombre_completo() if orden.tecnico else 'No asignado' }}" readonly>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold text-primary text-uppercase small">Falla Reportada por el Cliente</label>
+                        <textarea class="form-control bg-light" rows="3" readonly>{{ orden.falla or 'No reportada' }}</textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-muted text-uppercase small">Tipo de Aparato</label>
+                        <input type="text" class="form-control bg-light" value="{{ orden.tipo_aparato }}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-muted text-uppercase small">Estado Actual</label>
+                        <input type="text" class="form-control bg-light" value="{{ orden.estado|title }}" readonly>
+                    </div>
                 </div>
 
-                <!-- Falla REPORTADA POR EL CLIENTE (solo lectura) -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold text-primary">Falla reportada por el cliente</label>
-                    <textarea class="form-control bg-light" rows="3" readonly>{{ orden.falla or 'No reportada' }}</textarea>
+                <!-- Diagnóstico -->
+                <div class="mb-5 p-4 bg-danger bg-opacity-10 rounded-4 border border-danger border-opacity-25">
+                    <label class="form-label fw-bold text-danger text-uppercase">Diagnóstico / Falla Encontrada</label>
+                    <textarea name="falla_encontrada" class="form-control" rows="5" 
+                              placeholder="Describe detalladamente lo que encontraste (ej: fuga de gas, compresor quemado, termostato fallando, etc.)" 
+                              required>{{ orden.falla_encontrada or '' }}</textarea>
                 </div>
 
-                <!-- Falla ENCONTRADA POR EL TÉCNICO (editable) -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold text-danger">Falla encontrada / Diagnóstico</label>
-                    <textarea name="falla_encontrada" class="form-control" rows="4" placeholder="Describe lo que realmente encontraste (ej: motor quemado, fuga de gas, etc.)" required>{{ orden.falla_encontrada or '' }}</textarea>
-                </div>
+                <!-- Registro de videos -->
+                <div class="p-4 bg-light rounded-4 shadow-sm mb-5">
+                    <h4 class="text-primary fw-bold mb-4">
+                        <i class="bi bi-camera-video-fill me-2"></i>Registro de Evidencia en Video
+                    </h4>
 
-                <!-- Tipo de Aparato (solo lectura) -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Tipo de Aparato</label>
-                    <input type="text" class="form-control bg-light" value="{{ orden.tipo_aparato }}" readonly>
-                </div>
-
-                <!-- Monto oculto -->
-                <input type="hidden" name="total" value="{{ orden.total }}">
-
-                <!-- Estado (solo lectura) -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Estado Actual</label>
-                    <input type="text" class="form-control bg-light" value="{{ orden.estado|title }}" readonly>
-                </div>
-
-                <!-- VIDEOS -->
-                <div class="mt-5 p-4 border rounded-3 bg-light shadow-sm">
-                    <h4 class="text-primary mb-4">Registro de Videos</h4>
-
-                    <div class="row g-3">
-                        <!-- Video inicial -->
-                        <div class="col-md-6 mb-4">
-                            <label class="form-label fw-bold text-danger">1. Video inicial (cómo encontró el equipo)</label>
+                    <div class="row g-4">
+                        <!-- Video Inicial -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-danger">1. Video Inicial (cómo llegó el equipo) *</label>
                             {% if orden.video_inicial %}
-                                <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
-                                    <video controls preload="metadata" poster="/static/img/video-placeholder.jpg">
-                                        <source src="{{ orden.video_inicial }}" type="video/mp4">
-                                        Tu navegador no soporta video.
-                                    </video>
+                                <div class="ratio ratio-16x9 mb-3 border rounded overflow-hidden shadow">
+                                    <iframe src="{{ orden.video_inicial|replace('uc?id=', 'file/d/')|replace('&export=download', '/preview') }}" 
+                                            allowfullscreen class="rounded"></iframe>
                                 </div>
-                                <div class="text-success fw-bold text-center">
-                                    <i class="fas fa-check-circle"></i> Subido a Drive
+                                <div class="text-success text-center fw-bold">
+                                    <i class="bi bi-check-circle-fill"></i> Subido correctamente
                                 </div>
                             {% else %}
-                                <p class="text-muted small">No subido aún</p>
-                                <input type="file" name="video_inicial" id="video_inicial" accept="video/*" capture="environment" class="form-control">
+                                <p class="text-muted small mb-2">Obligatorio para finalizar orden</p>
+                                <input type="file" name="video_inicial" accept="video/*" capture="environment" class="form-control">
                             {% endif %}
                         </div>
 
-                        <!-- Video falla -->
-                        <div class="col-md-6 mb-4">
-                            <label class="form-label fw-bold text-danger">2. Video describiendo la falla</label>
+                        <!-- Video Falla -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-danger">2. Video de la Falla Encontrada *</label>
                             {% if orden.video_falla %}
-                                <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
-                                    <video controls preload="metadata" poster="/static/img/video-placeholder.jpg">
-                                        <source src="{{ orden.video_falla }}" type="video/mp4">
-                                        Tu navegador no soporta video.
-                                    </video>
+                                <div class="ratio ratio-16x9 mb-3 border rounded overflow-hidden shadow">
+                                    <iframe src="{{ orden.video_falla|replace('uc?id=', 'file/d/')|replace('&export=download', '/preview') }}" 
+                                            allowfullscreen class="rounded"></iframe>
                                 </div>
-                                <div class="text-success fw-bold text-center">
-                                    <i class="fas fa-check-circle"></i> Subido a Drive
+                                <div class="text-success text-center fw-bold">
+                                    <i class="bi bi-check-circle-fill"></i> Subido correctamente
                                 </div>
                             {% else %}
-                                <p class="text-muted small">No subido aún</p>
-                                <input type="file" name="video_falla" id="video_falla" accept="video/*" capture="environment" class="form-control">
+                                <p class="text-muted small mb-2">Obligatorio para finalizar orden</p>
+                                <input type="file" name="video_falla" accept="video/*" capture="environment" class="form-control">
                             {% endif %}
                         </div>
 
-                        <!-- Video final -->
-                        <div class="col-md-6 mb-4">
-                            <label class="form-label fw-bold text-success">3. Video final (equipo funcionando)</label>
+                        <!-- Video Final -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-success">3. Video Final (equipo funcionando)</label>
                             {% if orden.video_final %}
-                                <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
-                                    <video controls preload="metadata" poster="/static/img/video-placeholder.jpg">
-                                        <source src="{{ orden.video_final }}" type="video/mp4">
-                                        Tu navegador no soporta video.
-                                    </video>
+                                <div class="ratio ratio-16x9 mb-3 border rounded overflow-hidden shadow">
+                                    <iframe src="{{ orden.video_final|replace('uc?id=', 'file/d/')|replace('&export=download', '/preview') }}" 
+                                            allowfullscreen class="rounded"></iframe>
                                 </div>
-                                <div class="text-success fw-bold text-center">
-                                    <i class="fas fa-check-circle"></i> Subido a Drive
+                                <div class="text-success text-center fw-bold">
+                                    <i class="bi bi-check-circle-fill"></i> Subido correctamente
                                 </div>
                             {% else %}
-                                <p class="text-muted small">No subido aún</p>
-                                <input type="file" name="video_final" id="video_final" accept="video/*" capture="environment" class="form-control">
+                                <p class="text-muted small mb-2">Opcional, pero recomendado</p>
+                                <input type="file" name="video_final" accept="video/*" capture="environment" class="form-control">
                             {% endif %}
                         </div>
 
-                        <!-- Video demora (opcional) -->
-                        <div class="col-md-6 mb-4">
-                            <label class="form-label fw-bold text-warning">4. Video de demora (opcional)</label>
+                        <!-- Video Demora -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-warning">4. Video Justificación de Demora (opcional)</label>
                             {% if orden.video_demora %}
-                                <div class="ratio ratio-16x9 mb-2 border rounded overflow-hidden shadow-sm">
-                                    <video controls preload="metadata" poster="/static/img/video-placeholder.jpg">
-                                        <source src="{{ orden.video_demora }}" type="video/mp4">
-                                        Tu navegador no soporta video.
-                                    </video>
+                                <div class="ratio ratio-16x9 mb-3 border rounded overflow-hidden shadow">
+                                    <iframe src="{{ orden.video_demora|replace('uc?id=', 'file/d/')|replace('&export=download', '/preview') }}" 
+                                            allowfullscreen class="rounded"></iframe>
                                 </div>
-                                <div class="text-success fw-bold text-center">
-                                    <i class="fas fa-check-circle"></i> Subido a Drive
+                                <div class="text-success text-center fw-bold">
+                                    <i class="bi bi-check-circle-fill"></i> Subido correctamente
                                 </div>
                             {% else %}
-                                <p class="text-muted small">No subido aún</p>
-                                <input type="file" name="video_demora" id="video_demora" accept="video/*" capture="environment" class="form-control">
+                                <p class="text-muted small mb-2">Solo si hubo retraso</p>
+                                <input type="file" name="video_demora" accept="video/*" capture="environment" class="form-control">
                             {% endif %}
                         </div>
                     </div>
-
-                    <!-- Justificación demora -->
-                    <div class="mt-4 p-3 bg-warning bg-opacity-10 border border-warning rounded">
-                        <label class="form-label fw-bold text-warning">¿Hubo demora? Justificación</label>
-                        <textarea name="justificacion_demora" class="form-control" rows="3" placeholder="Explica por qué tardó más de lo normal">{{ orden.justificacion_demora or '' }}</textarea>
-                    </div>
                 </div>
 
-                <!-- DEBUG TEMPORAL (BORRAR CUANDO FUNCIONE TODO) -->
-                <div class="mt-4 p-3 bg-light border rounded">
-                    <small class="text-muted">
-                        <strong>Debug videos (borrar después):</strong><br>
-                        Inicial: {{ orden.video_inicial or 'No subido' }}<br>
-                        Falla: {{ orden.video_falla or 'No subido' }}<br>
-                        Final: {{ orden.video_final or 'No subido' }}<br>
-                        Demora: {{ orden.video_demora or 'No subido' }}
-                    </small>
+                <!-- Justificación de demora -->
+                <div class="mb-5 p-4 bg-warning bg-opacity-10 rounded-4 border border-warning">
+                    <label class="form-label fw-bold text-warning">
+                        <i class="bi bi-clock-history me-2"></i>Justificación de Demora (si aplica)
+                    </label>
+                    <textarea name="justificacion_demora" class="form-control" rows="3" 
+                              placeholder="Explica el motivo del retraso (ej: tráfico, falta de repuesto, cliente no estaba, etc.)">{{ orden.justificacion_demora or '' }}</textarea>
                 </div>
 
-                <div class="d-grid gap-3 mt-5">
-                    <button type="submit" id="btnGuardar" class="btn btn-success btn-lg fw-bold">
-                        <span id="btnText">Guardar Cambios</span>
+                <!-- Botones -->
+                <div class="d-flex flex-column flex-md-row gap-3 justify-content-end">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-lg px-5 order-md-1">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </a>
+                    <button type="submit" id="btnGuardar" class="btn btn-success btn-lg px-5 shadow-sm order-md-2">
+                        <span id="btnText">
+                            <i class="bi bi-save me-2"></i>Guardar Cambios
+                        </span>
                         <span id="btnLoading" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
                     </button>
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg">Volver al Dashboard</a>
                 </div>
-
-                <script>
-                    const form = document.querySelector('form');
-                    const btnGuardar = document.getElementById('btnGuardar');
-                    const btnText = document.getElementById('btnText');
-                    const btnLoading = document.getElementById('btnLoading');
-
-                    form.addEventListener('submit', function(e) {
-                        const files = form.querySelectorAll('input[type="file"]');
-                        let hasFile = false;
-                        files.forEach(file => {
-                            if (file.files.length > 0) hasFile = true;
-                        });
-
-                        if (hasFile) {
-                            btnGuardar.disabled = true;
-                            btnText.textContent = 'Subiendo videos a Drive, por favor espera...';
-                            btnLoading.classList.remove('d-none');
-                        }
-                    });
-                </script>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+    const form = document.querySelector('form');
+    const btnGuardar = document.getElementById('btnGuardar');
+    const btnText = document.getElementById('btnText');
+    const btnLoading = document.getElementById('btnLoading');
+
+    form.addEventListener('submit', function(e) {
+        const files = form.querySelectorAll('input[type="file"]');
+        let hasFile = false;
+        files.forEach(input => {
+            if (input.files.length > 0) hasFile = true;
+        });
+
+        if (hasFile) {
+            btnGuardar.disabled = true;
+            btnText.innerHTML = '<i class="bi bi-cloud-upload me-2"></i>Subiendo videos a Drive, espera...';
+            btnLoading.classList.remove('d-none');
+        }
+    });
+</script>
 {% endblock %}

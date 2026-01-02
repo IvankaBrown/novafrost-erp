@@ -1,199 +1,198 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - Técnico{% endblock %}
+{% block title %}Panel Técnico - NovaFrost{% endblock %}
 
 {% block content %}
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
 <style>
+    /* Tarjeta GPS principal */
     .gps-card {
-        background: linear-gradient(135deg, #28a745, #20c997);
+        background: linear-gradient(135deg, #198754, #20c997);
         color: white;
         border-radius: 20px;
-        padding: 2.5rem;
+        padding: 2rem;
         text-align: center;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        box-shadow: 0 10px 30px rgba(25, 135, 84, 0.3);
         margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
     }
-    .gps-card h3 {
-        font-size: 1.8rem;
-        margin-bottom: 1rem;
+    .gps-card::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: rgba(255,255,255,0.1);
+        transform: rotate(30deg);
+        pointer-events: none;
     }
     #btnGps {
-        font-size: 1.4rem;
+        font-size: 1.3rem;
         padding: 1rem 3rem;
         border-radius: 50px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
         font-weight: bold;
-        transition: all 0.3s;
+        transition: all 0.3s ease;
     }
-    #btnGps:hover {
-        transform: scale(1.05);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    #btnGps:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+    #btnGps:active { transform: scale(0.95); }
+
+    /* Orden urgente */
+    .row-urgente {
+        background-color: rgba(220, 53, 69, 0.15) !important;
+        border-left: 6px solid #dc3545 !important;
     }
-    .badge-custom {
-        font-size: 0.9rem;
-        padding: 0.5em 0.8em;
+    .pulse-urgent {
+        animation: pulse-red 2s infinite;
     }
-    .video-status {
-        margin: 10px 0;
+    @keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+        70% { box-shadow: 0 0 0 12px rgba(220, 53, 69, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
+
+    /* Tabla */
+    .table thead {
+        background-color: #0d6efd;
+        color: white;
+    }
+    .video-badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.65em;
+        margin-bottom: 3px;
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .gps-card { padding: 1.5rem; }
+        #btnGps { padding: 0.8rem 2rem; font-size: 1.1rem; }
+        .table { font-size: 0.9rem; }
     }
 </style>
 
-<div class="container mt-4">
+<div class="container my-4">
 
-    <!-- SALUDO PERSONALIZADO -->
+    <!-- Saludo y logout -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-1 text-primary">
-                <i class="fas fa-hard-hat"></i> Dashboard Técnico
+            <h2 class="h4 text-primary mb-1">
+                <i class="bi bi-person-gear me-2"></i>Panel Técnico
             </h2>
-            <h3 class="text-success">
-                ¡Hola, <strong>{{ current_user.nombre_completo() }}</strong>!
-            </h3>
-            <p class="text-muted mb-0">Listo para romperla hoy</p>
+            <p class="text-muted mb-0">¡Hola, <strong>{{ current_user.nombre_completo() }}</strong>!</p>
         </div>
-        <div>
-            <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-lg">
-                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-            </a>
-        </div>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-box-arrow-right me-1"></i>Salir
+        </a>
     </div>
 
-    <!-- BOTÓN GPS ULTRA VISIBLE -->
+    <!-- Control GPS -->
     <div class="gps-card">
-        <h3>
-            <i class="fas fa-map-marker-alt fa-beat fa-2x"></i><br>
-            Enviar mi ubicación al coordinador
+        <h3 class="h5 mb-3">
+            <i class="bi bi-geo-alt-fill me-2"></i>Enviar mi ubicación actual
         </h3>
-        <button onclick="enviarMiUbicacion()" id="btnGps" class="btn btn-light btn-lg shadow-lg">
-            <i class="fas fa-location-arrow fa-2x"></i><br>
-            <strong>ENVIAR GPS AHORA</strong>
+        <p class="mb-4 opacity-90">El coordinador podrá verte en el mapa en tiempo real</p>
+        <button onclick="enviarMiUbicacion()" id="btnGps" class="btn btn-light shadow-lg fw-bold">
+            <i class="bi bi-location-arrow me-2"></i>ENVIAR GPS AHORA
         </button>
-        <p class="mt-3 mb-0 opacity-90">
-            Tu ubicación aparecerá en tiempo real en el mapa del coordinador
-        </p>
+        <div class="mt-3">
+            <small class="opacity-75">
+                Último envío: <span id="ultimoEnvio" class="fw-bold">--:--</span>
+            </small>
+        </div>
     </div>
 
-    <!-- MIS ÓRDENES -->
+    <!-- Lista de órdenes -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">
-            <i class="fas fa-tools text-primary"></i> Mis Órdenes Asignadas
-        </h4>
-        <span class="badge bg-primary fs-6">{{ ordenes|length }} órdenes hoy</span>
+        <h5 class="mb-0 fw-bold text-primary">
+            <i class="bi bi-list-task me-2"></i>Mis Trabajos de Hoy
+        </h5>
+        <span class="badge bg-primary rounded-pill fs-6 px-3 py-2">{{ ordenes|length }} órdenes</span>
     </div>
 
-    <div class="card shadow-lg border-0">
+    <div class="card shadow border-0 rounded-4 overflow-hidden">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-primary text-white">
+                <table class="table table-hover mb-0">
+                    <thead>
                         <tr>
-                            <th>#ID</th>
-                            <th>Cliente</th>
-                            <th>Dirección</th>
-                            <th>Fecha</th>
-                            <th>Estado</th>
-                            <th>Aparato</th>
-                            <th>Falla</th>
+                            <th class="ps-4">Orden / Cliente</th>
+                            <th>Servicio</th>
                             <th>Videos</th>
-                            <th>Acción</th>
-                            <th>Pasajes</th>
+                            <th class="text-center pe-4">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% if ordenes %}
                             {% for orden in ordenes %}
-                            <tr class="{% if orden.estado == 'urgente' %}table-danger{% endif %}">
-                                <td><strong class="text-primary">#{{ orden.id }}</strong></td>
-                                <td>
-                                    <div class="fw-bold">{{ orden.cliente.nombre }}</div>
-                                    <small class="text-muted">{{ orden.cliente.telefono or 'Sin teléfono' }}</small>
+                            <tr class="{% if orden.estado == 'urgente' %}row-urgente{% endif %}">
+                                <td class="ps-4">
+                                    <div class="fw-bold text-primary">#{{ orden.id }}</div>
+                                    {% if orden.estado == 'urgente' %}
+                                        <span class="badge bg-danger pulse-urgent small">URGENTE</span>
+                                    {% endif %}
+                                    <div class="mt-1 fw-bold">{{ orden.cliente.nombre }}</div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-geo"></i> {{ orden.cliente.distrito or 'Sin distrito' }}
+                                    </small>
                                 </td>
                                 <td>
-                                    <small>{{ orden.cliente.direccion|default('Sin dirección') }}</small>
-                                </td>
-                                <td>{{ orden.fecha.strftime('%d/%m') }}<br>
-                                    <small>{{ orden.fecha.strftime('%H:%M') }}</small>
-                                </td>
-                                <td>
-                                    <span class="badge badge-custom 
-                                        {% if orden.estado == 'completado' %}bg-success
-                                        {% elif orden.estado == 'urgente' %}bg-danger
-                                        {% else %}bg-warning text-dark{% endif %}">
-                                        {{ orden.estado|title }}
+                                    <div class="small text-uppercase fw-bold">{{ orden.tipo_aparato }}</div>
+                                    <small class="text-muted d-block text-truncate" style="max-width: 180px;">
+                                        {{ orden.falla|default('Sin descripción') }}
+                                    </small>
+                                    <span class="badge bg-light text-dark mt-1">
+                                        <i class="bi bi-clock"></i> {{ orden.fecha.strftime('%H:%M') }}
                                     </span>
                                 </td>
-                                <td>{{ orden.tipo_aparato|default('Refrigerador') }}</td>
                                 <td>
-                                    <div class="text-truncate" style="max-width: 180px;" title="{{ orden.falla|default('Sin descripción') }}">
-                                        {{ orden.falla|default('Sin descripción')|truncate(50) }}
-                                    </div>
+                                    {% macro video_status(field, label) %}
+                                        {% if orden[field] %}
+                                            <span class="badge bg-success video-badge">
+                                                <i class="bi bi-check-circle-fill"></i> {{ label }}
+                                            </span>
+                                        {% else %}
+                                            <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}#{{ field }}" 
+                                               class="badge bg-outline-primary video-badge text-decoration-none border border-primary">
+                                                Pendiente {{ label }}
+                                            </a>
+                                        {% endif %}
+                                    {% endmacro %}
+
+                                    {{ video_status('video_inicial', 'Inicial') }}
+                                    {{ video_status('video_falla', 'Falla') }}
+                                    {{ video_status('video_final', 'Final') }}
                                 </td>
-                                <td>
-                                    <div class="video-status">
-                                        <!-- Video Inicial -->
-                                        {% if orden.video_inicial %}
-                                            <span class="badge bg-success mb-1"><i class="fas fa-check"></i> Inicial</span><br>
-                                        {% else %}
-                                            <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}#video_inicial" class="btn btn-sm btn-outline-primary mb-1">
-                                                <i class="fas fa-video"></i> Inicial
-                                            </a><br>
-                                        {% endif %}
+                                <td class="text-center pe-4">
+                                    <div class="d-grid gap-2">
+                                        <a href="{{ url_for('registrar_pasajes', orden_id=orden.id) }}" 
+                                           class="btn btn-info btn-sm">
+                                            <i class="bi bi-bus"></i> Pasajes
+                                        </a>
 
-                                        <!-- Video Falla -->
-                                        {% if orden.video_falla %}
-                                            <span class="badge bg-success mb-1"><i class="fas fa-check"></i> Falla</span><br>
+                                        {% if orden.video_inicial and orden.video_falla and orden.video_final %}
+                                            <form action="{{ url_for('finalizar_orden', orden_id=orden.id) }}" method="POST" class="d-inline">
+                                                <button type="submit" class="btn btn-success btn-sm w-100" 
+                                                        onclick="return confirm('¿Confirmas que terminaste el trabajo?')">
+                                                    <i class="bi bi-check2-all"></i> Finalizar
+                                                </button>
+                                            </form>
                                         {% else %}
-                                            <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}#video_falla" class="btn btn-sm btn-outline-primary mb-1">
-                                                <i class="fas fa-video"></i> Falla
-                                            </a><br>
-                                        {% endif %}
-
-                                        <!-- Video Final -->
-                                        {% if orden.video_final %}
-                                            <span class="badge bg-success mb-1"><i class="fas fa-check"></i> Final</span><br>
-                                        {% else %}
-                                            <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}#video_final" class="btn btn-sm btn-outline-primary mb-1">
-                                                <i class="fas fa-video"></i> Final
-                                            </a><br>
-                                        {% endif %}
-
-                                        <!-- Video Demora (opcional) -->
-                                        {% if orden.video_demora %}
-                                            <span class="badge bg-info mb-1"><i class="fas fa-check"></i> Demora</span>
-                                        {% else %}
-                                            <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}#video_demora" class="btn btn-sm btn-outline-secondary mb-1">
-                                                <i class="fas fa-video"></i> Demora (opcional)
+                                            <a href="{{ url_for('actualizar_orden', orden_id=orden.id) }}" 
+                                               class="btn btn-primary btn-sm">
+                                                <i class="bi bi-camera-video"></i> Subir Videos
                                             </a>
                                         {% endif %}
                                     </div>
-                                </td>
-                                <td>
-                                    <!-- Botón Finalizar Orden - SOLO si tiene los 3 obligatorios -->
-                                    {% if orden.video_inicial and orden.video_falla and orden.video_final %}
-                                        <form action="{{ url_for('finalizar_orden', orden_id=orden.id) }}" method="POST" style="display:inline;">
-                                            <button type="submit" class="btn btn-success btn-sm" 
-                                                    onclick="return confirm('¿Confirmas que la orden está completada y lista para revisión?')">
-                                                <i class="fas fa-check-circle"></i> Finalizar
-                                            </button>
-                                        </form>
-                                    {% else %}
-                                        <span class="text-muted small">Finalizar disponible con los 3 videos</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <a href="{{ url_for('registrar_pasajes', orden_id=orden.id) }}" 
-                                       class="btn btn-info btn-sm text-white">
-                                        <i class="fas fa-bus"></i> Pasajes
-                                    </a>
                                 </td>
                             </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="10" class="text-center py-5 text-muted">
-                                    <i class="fas fa-check-circle fa-3x mb-3 text-success"></i><br>
-                                    <h5>¡Todo al día!</h5>
-                                    <p>No tienes órdenes pendientes por ahora</p>
+                                <td colspan="4" class="text-center py-5">
+                                    <i class="bi bi-emoji-smile fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted fs-5">No tienes órdenes asignadas hoy</p>
+                                    <p class="text-muted">¡Aprovecha para descansar o revisar herramientas!</p>
                                 </td>
                             </tr>
                         {% endif %}
@@ -202,21 +201,14 @@
             </div>
         </div>
     </div>
-
-    <!-- Indicador de conexión GPS -->
-    <div class="text-center mt-4">
-        <small class="text-muted">
-            <i class="fas fa-circle text-success"></i> Conexión activa • 
-            Última ubicación enviada: <span id="ultimoEnvio">Nunca</span>
-        </small>
-    </div>
 </div>
 
-<!-- SCRIPT GPS MEJORADO CON FEEDBACK VISUAL -->
 <script>
+// Enviar ubicación GPS - ACTUALIZADO a la nueva ruta
 function enviarMiUbicacion() {
     const btn = document.getElementById('btnGps');
     const textoOriginal = btn.innerHTML;
+    const ultimoEnvioSpan = document.getElementById('ultimoEnvio');
 
     if (!navigator.geolocation) {
         alert("Tu navegador no soporta geolocalización");
@@ -224,50 +216,55 @@ function enviarMiUbicacion() {
     }
 
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin fa-2x"></i><br><strong>Obteniendo ubicación...</strong>';
+    btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>OBTENIENDO UBICACIÓN...';
 
     navigator.geolocation.getCurrentPosition(
         position => {
-            fetch('/enviar_gps', {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            fetch('/update_location', {  // ← RUTA CORREGIDA
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                })
+                body: JSON.stringify({ lat: lat, lng: lng })
             })
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    btn.innerHTML = '<i class="fas fa-check-circle fa-2x"></i><br><strong>¡ENVIADO!</strong>';
-                    document.getElementById('ultimoEnvio').textContent = new Date().toLocaleTimeString();
+                    btn.classList.replace('btn-light', 'btn-success');
+                    btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>¡ENVIADO!';
+                    const hora = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+                    ultimoEnvioSpan.textContent = hora;
+
                     setTimeout(() => {
+                        btn.classList.replace('btn-success', 'btn-light');
                         btn.innerHTML = textoOriginal;
                         btn.disabled = false;
-                    }, 3000);
+                    }, 4000);
+                } else {
+                    alert("Error al enviar ubicación");
+                    btn.innerHTML = textoOriginal;
+                    btn.disabled = false;
                 }
             })
-            .catch(() => {
+            .catch(err => {
+                console.error(err);
                 alert("Error de conexión");
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
             });
         },
         error => {
-            let msg = "Error desconocido";
-            if (error.code === 1) msg = "Permiso de ubicación denegado";
-            if (error.code === 2) msg = "GPS no disponible";
-            if (error.code === 3) msg = "Tiempo agotado";
-            
-            alert("Error GPS: " + msg + "\n\nActiva la ubicación y permite el acceso");
+            let mensaje = "Error al obtener ubicación";
+            if (error.code === 1) mensaje = "Permite el acceso a tu ubicación";
+            if (error.code === 2) mensaje = "No se pudo obtener tu posición";
+            if (error.code === 3) mensaje = "Tiempo agotado";
+
+            alert(mensaje);
             btn.innerHTML = textoOriginal;
             btn.disabled = false;
         },
-        { 
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0 
-        }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
 }
 </script>

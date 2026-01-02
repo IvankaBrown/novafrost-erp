@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import db
+from flask_migrate import Migrate
 from models import User, Orden, Cliente, Anticipo, Pasaje
 from datetime import datetime, timezone
 import os
@@ -43,6 +44,7 @@ def now_peru():
 app.jinja_env.globals['now'] = now_peru
 
 db.init_app(app)
+migrate = Migrate(app, db)  # ← Esta línea nueva
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -98,7 +100,8 @@ with app.app_context():
 # ====================== FUNCIÓN PARA SUBIR VIDEOS A DRIVE ======================
 def subir_video_a_drive(filepath, filename, carpeta_id):
     """
-    Sube un video a Google Drive usando OAuth2 y devuelve enlace directo para reproducción.
+    Sube un video a Google Drive usando OAuth2 y devuelve el enlace de vista previa 
+    para reproducir directamente en el Dashboard.
     """
     refresh_token = os.getenv('GOOGLE_REFRESH_TOKEN')
     client_id = os.getenv('GOOGLE_CLIENT_ID')
@@ -140,17 +143,18 @@ def subir_video_a_drive(filepath, filename, carpeta_id):
        
         file_id = file['id']
         
-        # Hacerlo público para que el Dashboard pueda leerlo sin loguearse en Drive
+        # 1. Hacerlo público para que el Dashboard pueda leerlo
         service.permissions().create(
             fileId=file_id,
             body={'type': 'anyone', 'role': 'reader'}
         ).execute()
         
-        # ENLACE DIRECTO OPTIMIZADO PARA DASHBOARD
-        direct_link = f"https://drive.google.com/uc?id={file_id}&export=download"
+        # 2. CAMBIO CLAVE: Enlace de vista previa (Player de Google Drive)
+        # Esto permite que el video se vea en un <iframe> dentro de tu app.
+        preview_link = f"https://drive.google.com/file/d/{file_id}/preview"
         
-        current_app.logger.info(f"ÉXITO: Video {filename} disponible en 2TB (ID: {file_id})")
-        return direct_link
+        current_app.logger.info(f"ÉXITO: Video {filename} subido a 2TB. Link de visualización: {preview_link}")
+        return preview_link
     
     except Exception as e:
         current_app.logger.error(f"Error crítico subiendo video {filename}: {str(e)}")
@@ -209,7 +213,7 @@ def dashboard():
             anticipos_data.append({
                 'id': a.id,
                 'fecha': a.fecha.strftime('%d/%m/%Y'),
-                'tecnico': a.user.nombre_completo() if a.user else 'Sin técnico',
+                'tecnico': a.tecnico.nombre_completo() if a.tecnico else 'Sin técnico',
                 'monto': float(a.monto),
                 'validado': float(validado),
                 'por_validar': float(a.monto - validado)
@@ -308,8 +312,6 @@ def desactivar_usuario(user_id):
     return redirect(url_for('admin_usuarios'))
 
 # ====================== GPS ======================
-tecnicos_gps = {}
-
 @app.route('/enviar_gps', methods=['POST'])
 @login_required
 def enviar_gps():
@@ -320,13 +322,9 @@ def enviar_gps():
         "lat": data.get('lat'),
         "lng": data.get('lng'),
         "nombre": current_user.nombre_completo(),
-        "timestamp": datetime.utcnow().strftime("%H:%M:%S")
+        "timestamp": now_peru().strftime("%H:%M:%S") # Hora Perú
     }
     return jsonify({"success": True})
-
-@app.route('/get_gps_tecnicos')
-def get_gps_tecnicos():
-    return jsonify(tecnicos_gps)
 
 # ====================== DEBUG TEMPORAL (BORRAR DESPUÉS) ======================
 @app.route('/debug-users')
@@ -350,34 +348,36 @@ def crear_orden():
 
     if request.method == 'POST':
         try:
-            # Cliente por ID (buscador PRO)
+            # MANTENEMOS TU BUSCADOR PRO DE CLIENTE
             cliente_id = request.form.get('cliente_id')
             if not cliente_id or not cliente_id.isdigit():
                 flash('Debe seleccionar un cliente de la lista', 'danger')
                 return redirect(url_for('crear_orden'))
-            cliente = Cliente.query.get_or_404(int(cliente_id))
-
-            # Campos básicos
+            
+            # MANTENEMOS TUS VARIABLES ORIGINALES
             falla = request.form['falla'].strip()
             tecnico_id = request.form['tecnico_id']
             tipo_aparato = request.form['tipo_aparato']
             total = float(request.form['total'])
             urgente = 'urgente' in request.form
-
-            # NUEVOS CAMPOS OBLIGATORIOS
             fecha_hora_str = request.form['fecha_hora_atencion']
             medio_pago = request.form['medio_pago']
             tipo_comprobante = request.form['tipo_comprobante']
 
-            # Crear orden con todos los datos
+            # INTEGRACIÓN DE CÁLCULO (Lo nuevo que necesitas)
+            valor_calculado = round(total / 1.18, 2)
+            igv_calculado = round(total - valor_calculado, 2)
+
             orden = Orden(
-                cliente_id=cliente.id,
+                cliente_id=int(cliente_id), # Tu forma original
                 tecnico_id=tecnico_id,
                 falla=falla,
                 tipo_aparato=tipo_aparato,
                 total=total,
+                valor=valor_calculado,      # Nuevo para models.py
+                igv=igv_calculado,          # Nuevo para models.py
                 estado='urgente' if urgente else 'pendiente',
-                fecha=datetime.utcnow(),
+                fecha=now_peru(),           # Cambio a hora Perú
                 fecha_hora_atencion=datetime.fromisoformat(fecha_hora_str),
                 medio_pago=medio_pago,
                 tipo_comprobante=tipo_comprobante
@@ -387,7 +387,6 @@ def crear_orden():
 
             flash(f'Orden #{orden.id} creada con éxito', 'success')
             return redirect(url_for('dashboard'))
-
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear la orden: {str(e)}', 'danger')
@@ -487,6 +486,8 @@ def registrar_pasajes(orden_id):
         return redirect(url_for('dashboard'))
 
     orden = Orden.query.get_or_404(orden_id)
+    
+    # MANTENEMOS TU SEGURIDAD ORIGINAL:
     if orden.tecnico_id != current_user.id:
         flash('Esta orden no te pertenece', 'danger')
         return redirect(url_for('dashboard'))
@@ -505,7 +506,7 @@ def registrar_pasajes(orden_id):
                 tecnico_id=current_user.id,
                 origen_destino=origen_destino,
                 monto=monto,
-                fecha=datetime.utcnow(),
+                fecha=now_peru(), # CAMBIO: Ahora usa hora de Perú
                 validado=False
             )
             db.session.add(pasaje)
@@ -686,6 +687,75 @@ def serve_sw():
 def serve_firebase_sw():
     return send_from_directory('static', 'firebase-messaging-sw.js')
 
+@app.route('/crear_anticipo', methods=['POST'])
+@login_required
+def crear_anticipo():
+    if current_user.role != 'coordinador':
+        flash('No autorizado', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        tecnico_id = request.form.get('tecnico_id')
+        monto = float(request.form.get('monto'))
+
+        # Asegúrate de que tu modelo se llame Anticipo
+        nuevo_anticipo = Anticipo(
+            tecnico_id=int(tecnico_id),
+            monto=monto,
+            fecha=now_peru() # O datetime.now() si no usas la función de Perú
+        )
+        db.session.add(nuevo_anticipo)
+        db.session.commit()
+        flash(f'Anticipo de S/. {monto:.2f} registrado con éxito', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al registrar anticipo: {str(e)}', 'danger')
+
+    return redirect(url_for('dashboard'))
+
+# Nuevas rutas GPS
+@app.route('/update_location', methods=['POST'])
+@login_required
+def update_location():
+    if current_user.role != 'tecnico':
+        return jsonify({"error": "No autorizado"}), 403
+    
+    data = request.get_json()
+    lat = data.get('lat')
+    lng = data.get('lng')
+    
+    if lat is None or lng is None:
+        return jsonify({"error": "Faltan coordenadas"}), 400
+    
+    current_user.last_lat = float(lat)
+    current_user.last_lng = float(lng)
+    current_user.last_location_update = now_peru()
+    db.session.commit()
+    
+    return jsonify({"success": True})
+
+
+@app.route('/get_gps_tecnicos')
+@login_required
+def get_gps_tecnicos():
+    if current_user.role != 'coordinador':
+        return jsonify([])
+    
+    tecnicos_activos = User.query.filter_by(role='tecnico', activo=True)\
+        .filter(User.last_lat.isnot(None), User.last_lng.isnot(None))\
+        .all()
+    
+    data = []
+    for t in tecnicos_activos:
+        data.append({
+            'id': t.id,
+            'nombre': t.nombre_completo(),
+            'lat': t.last_lat,
+            'lng': t.last_lng,
+            'timestamp': t.last_location_update.strftime("%H:%M:%S") if t.last_location_update else "Desconocido"
+        })
+    
+    return jsonify(data)
 # ====================== RUN ======================
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=True)
